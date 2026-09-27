@@ -1,4 +1,10 @@
-# Retrieval engines
+# Retrieval engines.
+# torch is pinned to the CPU wheel index on purpose: this project embeds ~24k short
+# documents once and caches them, so there is nothing for a GPU to do, and the default
+# index would pull a ~3GB accelerator build. Why the study runs locally on CPU: AGENTS.md, section 1.
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2,<3
+transformers>=4.40
 faiss-cpu>=1.8.0
 rank-bm25>=0.2.2
 sentence-transformers>=3.0.0

@@ -19,7 +19,8 @@ class OpenRouterClient:
         temperature: float = config.LLM_TEMPERATURE,
         max_tokens: int = config.LLM_MAX_TOKENS,
         timeout: int = config.LLM_TIMEOUT,
-        max_retries: int = config.LLM_MAX_RETRIES
+        max_retries: int = config.LLM_MAX_RETRIES,
+        response_format: Optional[Dict[str, Any]] = None
     ) -> str:
         model = model or config.GENERATOR_MODEL
         url = f"{self.base_url}/chat/completions"
@@ -37,6 +38,8 @@ class OpenRouterClient:
             "temperature": temperature,
             "max_tokens": max_tokens
         }
+        if response_format is not None:
+            payload["response_format"] = response_format
         data = json.dumps(payload).encode("utf-8")
 
         last_error = None

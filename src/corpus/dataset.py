@@ -32,7 +32,15 @@ class RetrievalResult:
     text: str
     is_poisoned: bool
     doc_type: str
+    poison_target_query: Optional[str] = None
+    poison_type: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        # Support legacy positional calls where 8th arg was metadata dict
+        if isinstance(self.poison_target_query, dict) and not self.metadata:
+            self.metadata = self.poison_target_query
+            self.poison_target_query = None
 
 def build_cti_knowledge_base() -> List[CTIDocument]:
     return [
