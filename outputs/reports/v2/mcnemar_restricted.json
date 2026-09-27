@@ -1,0 +1,1325 @@
+{
+ "summary": {
+  "family_size": 43,
+  "no_discordant_pairs": 25,
+  "significant": 8,
+  "viable_strata": {
+   "GraphRAG": [
+    "attack_relational",
+    "cve_exact"
+   ],
+   "Hybrid-Reranker": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "Sparse-BM25": [
+    "cve_descriptive",
+    "cve_exact"
+   ]
+  },
+  "excluded_rank1_comparisons": [
+   [
+    "GraphRAG",
+    "Hybrid-Reranker",
+    "blackbox"
+   ],
+   [
+    "GraphRAG",
+    "Hybrid-Reranker",
+    "dense"
+   ],
+   [
+    "GraphRAG",
+    "Hybrid-Reranker",
+    "hybrid"
+   ],
+   [
+    "GraphRAG",
+    "Hybrid-Reranker",
+    "sparse"
+   ],
+   [
+    "GraphRAG",
+    "Sparse-BM25",
+    "blackbox"
+   ],
+   [
+    "GraphRAG",
+    "Sparse-BM25",
+    "dense"
+   ],
+   [
+    "GraphRAG",
+    "Sparse-BM25",
+    "hybrid"
+   ],
+   [
+    "GraphRAG",
+    "Sparse-BM25",
+    "sparse"
+   ]
+  ]
+ },
+ "tests": [
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 50,
+   "count_b": 0,
+   "b": 50,
+   "c": 0,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 48.02",
+   "p_raw": 4.218936524005766e-12,
+   "p_holm": 1.8141427053224796e-10,
+   "significant": true
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "sparse",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "dense",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "hybrid",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Hybrid-Reranker",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 50,
+   "count_b": 50,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "payload_at_rank1",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "sparse",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "dense",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "hybrid",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 1,
+   "b": 0,
+   "c": 1,
+   "variant": "Exact Binomial",
+   "statistic": "|b-c| = 1",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "GraphRAG",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_exact"
+   ],
+   "n": 50,
+   "outcome": "gt_displaced_at5",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "sparse",
+   "budgets": [
+    1
+   ],
+   "count_a": 4,
+   "count_b": 55,
+   "b": 3,
+   "c": 54,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 43.86",
+   "p_raw": 3.527875956002681e-11,
+   "p_holm": 1.3758716228410456e-09,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "sparse",
+   "budgets": [
+    2
+   ],
+   "count_a": 4,
+   "count_b": 53,
+   "b": 4,
+   "c": 53,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 40.42",
+   "p_raw": 2.0472322655497086e-10,
+   "p_holm": 7.370036155978951e-09,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "sparse",
+   "budgets": [
+    3
+   ],
+   "count_a": 5,
+   "count_b": 57,
+   "b": 4,
+   "c": 56,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 43.35",
+   "p_raw": 4.577362403132005e-11,
+   "p_holm": 1.7393977131901618e-09,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "dense",
+   "budgets": [
+    1,
+    2
+   ],
+   "count_a": 0,
+   "count_b": 50,
+   "b": 0,
+   "c": 50,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 48.02",
+   "p_raw": 4.218936524005766e-12,
+   "p_holm": 1.8141427053224796e-10,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "dense",
+   "budgets": [
+    3
+   ],
+   "count_a": 2,
+   "count_b": 50,
+   "b": 2,
+   "c": 50,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 42.48",
+   "p_raw": 7.138060540993875e-11,
+   "p_holm": 2.6410824001677337e-09,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "hybrid",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 50,
+   "b": 0,
+   "c": 50,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 48.02",
+   "p_raw": 4.218936524005766e-12,
+   "p_holm": 1.8141427053224796e-10,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 50,
+   "b": 0,
+   "c": 50,
+   "variant": "Asymptotic Chi\u00b2 (CC)",
+   "statistic": "\u03c7\u00b2 = 48.02",
+   "p_raw": 4.218936524005766e-12,
+   "p_holm": 1.8141427053224796e-10,
+   "significant": true
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "blackbox",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "payload_at_rank1",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "sparse",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 1,
+   "count_b": 1,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "dense",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 1,
+   "count_b": 1,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "hybrid",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 1,
+   "count_b": 1,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "graph",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 1,
+   "count_b": 1,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "entity_swap",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox_category",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "blackbox",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 1,
+   "count_b": 1,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  },
+  {
+   "engine_a": "Hybrid-Reranker",
+   "engine_b": "Sparse-BM25",
+   "strata": [
+    "cve_descriptive",
+    "cve_exact"
+   ],
+   "n": 100,
+   "outcome": "gt_displaced_at5",
+   "vector": "pure_topological",
+   "budgets": [
+    1,
+    2,
+    3
+   ],
+   "count_a": 0,
+   "count_b": 0,
+   "b": 0,
+   "c": 0,
+   "variant": "Brak niezgodno\u015bci (n=0)",
+   "statistic": "0.00",
+   "p_raw": 1.0,
+   "p_holm": 1.0,
+   "significant": false
+  }
+ ],
+ "excluded": [
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "sparse",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "sparse",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "sparse",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "dense",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "dense",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "dense",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "hybrid",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "hybrid",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "hybrid",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "blackbox",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "blackbox",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Hybrid-Reranker"
+   ],
+   "vector": "blackbox",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "sparse",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "sparse",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "sparse",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "dense",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "dense",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "dense",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "hybrid",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "hybrid",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "hybrid",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "blackbox",
+   "budget": 1,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "blackbox",
+   "budget": 2,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  },
+  {
+   "pair": [
+    "GraphRAG",
+    "Sparse-BM25"
+   ],
+   "vector": "blackbox",
+   "budget": 3,
+   "reason": "rank-1 tie crossing the payload/clean boundary"
+  }
+ ]
+}

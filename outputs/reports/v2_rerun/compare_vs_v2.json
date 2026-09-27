@@ -1,0 +1,13 @@
+{
+  "a": "outputs\\reports\\v2",
+  "b": "outputs\\reports\\v2_rerun",
+  "scenarios_compared": 148,
+  "scenarios_only_in_a": [],
+  "scenarios_only_in_b": [],
+  "top5_lists_compared": 22200,
+  "top5_lists_different": 0,
+  "point_metric_differences": 0,
+  "query_set_differences": [],
+  "metric_diffs": [],
+  "list_diffs": []
+}

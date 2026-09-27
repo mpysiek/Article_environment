@@ -1,0 +1,14 @@
+[+] Corpus 24,000 docs | 150 queries | stored traces: True
+   [sweep] bridges=10   poison@1= 17.3%
+   [sweep] bridges=20   poison@1= 18.0%
+   [sweep] bridges=40   poison@1= 18.0%
+   [sweep] bridges=80   poison@1= 18.0%
+   [sweep] bridges=100  poison@1= 18.0%
+   [sweep] bridges=120  poison@1= 18.0%
+   [sweep] bridges=140  poison@1= 18.0%
+   [sweep] bridges=146  poison@1= 18.0%
+   [sweep] bridges=147  poison@1= 51.3%
+   [sweep] bridges=150  poison@1= 52.0%
+   [sweep] bridges=160  poison@1= 63.3%
+   [sweep] bridges=320  poison@1= 76.0%
+[+] Saved outputs\reports\v3\bridge_sweep_tieaware.json

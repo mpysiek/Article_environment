@@ -1,0 +1,677 @@
+================================================================================
+[*] CTI RAG CORPUS POISONING BENCHMARK: 4 ARCHITECTURES COMPARISON
+================================================================================
+[*] Corpus Mode:      REAL (24000 documents target)
+[*] Evaluation Mode:  COST-FREE LOCAL RETRIEVAL ($0.00)
+[*] Protocol:         ISOLATED PER-QUERY (Rec 3)
+[*] Number of Queries:150
+[*] Attack Budgets:   [1, 2, 3, 5]
+[*] Query Echo:       False
+[*] Bridge Count:     40 (graph/topological attack free parameter)
+[*] Dense Model:      BAAI/bge-small-en-v1.5
+[*] Reranker Model:   cross-encoder/ms-marco-MiniLM-L-6-v2
+[*] Retrieval Top-K:  5
+[*] Query Set:        v3
+[*] Tie Logging:      ON (deep ranking per query, untimed)
+
+[1/5] Loading CTI Ground Truth Dataset & Benchmark Queries...
+   [+] Loaded 24,000 authentic CTI documents (MITRE ATT&CK STIX 2.1, CTIBench RCM/TAA, CISA KEV, cvelistV5)
+   [+] Loaded 150 verified Gold Benchmark queries with grounded ground truth
+
+[2/5] Initializing 4 Retrieval Engines & Poison Manager...
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6008.94it/s]
+
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 105/105 [00:00<00:00, 6165.07it/s]
+
+[3/5] Phase 1: Measuring Baseline (Clean Uncompromised Corpus)...
+   [+] Sparse-BM25      | Recall@5: 67.4% | MRR: 0.66 | Latency: 48.2ms (15.1s)
+   [+] Dense-FAISS      | Recall@5: 33.8% | MRR: 0.30 | Latency: 19.2ms (5.8s)
+   [+] Hybrid-Reranker  | Recall@5: 67.6% | MRR: 0.65 | Latency: 287.0ms (43.1s)
+   [+] GraphRAG         | Recall@5: 55.8% | MRR: 0.48 | Latency: 88.2ms (40.5s)
+
+[4/5] Phase 2: Generating Poisoned Corpora for Attack Vectors and Budgets...
+   [*] Generating Isolated Poison Payloads: BM25 Keyword Stuffing / TF-IDF Saturation (sparse), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: BM25 Keyword Stuffing / TF-IDF Saturation (sparse), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: BM25 Keyword Stuffing / TF-IDF Saturation (sparse), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: BM25 Keyword Stuffing / TF-IDF Saturation (sparse), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic Embedding Alignment (dense), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic Embedding Alignment (dense), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic Embedding Alignment (dense), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic Embedding Alignment (dense), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic + Query Echo (PoisonedRAG reference construction) (dense), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic + Query Echo (PoisonedRAG reference construction) (dense), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic + Query Echo (PoisonedRAG reference construction) (dense), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Dense Semantic + Query Echo (PoisonedRAG reference construction) (dense), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Hybrid Dual-Constraint Evasion (hybrid), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Hybrid Dual-Constraint Evasion (hybrid), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Hybrid Dual-Constraint Evasion (hybrid), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Hybrid Dual-Constraint Evasion (hybrid), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Graph Bridge-Node Injection (graph), Budget: 1...
+       Ready (150 queries mapped, 0.05s)
+   [*] Generating Isolated Poison Payloads: Graph Bridge-Node Injection (graph), Budget: 2...
+       Ready (150 queries mapped, 0.11s)
+   [*] Generating Isolated Poison Payloads: Graph Bridge-Node Injection (graph), Budget: 3...
+       Ready (150 queries mapped, 0.15s)
+   [*] Generating Isolated Poison Payloads: Graph Bridge-Node Injection (graph), Budget: 5...
+       Ready (150 queries mapped, 0.30s)
+   [*] Generating Isolated Poison Payloads: Graph Type-Preserving Entity Swap (LogicPoison construction) (entity_swap), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Graph Type-Preserving Entity Swap (LogicPoison construction) (entity_swap), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Graph Type-Preserving Entity Swap (LogicPoison construction) (entity_swap), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Graph Type-Preserving Entity Swap (LogicPoison construction) (entity_swap), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Category Poisoning (true lower bound, no victim identifier) (blackbox_category), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Category Poisoning (true lower bound, no victim identifier) (blackbox_category), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Category Poisoning (true lower bound, no victim identifier) (blackbox_category), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Category Poisoning (true lower bound, no victim identifier) (blackbox_category), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Topic+Entity (historical variant, uses victim identifier) (blackbox), Budget: 1...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Topic+Entity (historical variant, uses victim identifier) (blackbox), Budget: 2...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Topic+Entity (historical variant, uses victim identifier) (blackbox), Budget: 3...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Black-Box Topic+Entity (historical variant, uses victim identifier) (blackbox), Budget: 5...
+       Ready (150 queries mapped, 0.00s)
+   [*] Generating Isolated Poison Payloads: Pure Topological Graph Poisoning (Topology Isolation) (pure_topological), Budget: 1...
+       Ready (150 queries mapped, 0.01s)
+   [*] Generating Isolated Poison Payloads: Pure Topological Graph Poisoning (Topology Isolation) (pure_topological), Budget: 2...
+       Ready (150 queries mapped, 0.04s)
+   [*] Generating Isolated Poison Payloads: Pure Topological Graph Poisoning (Topology Isolation) (pure_topological), Budget: 3...
+       Ready (150 queries mapped, 0.07s)
+   [*] Generating Isolated Poison Payloads: Pure Topological Graph Poisoning (Topology Isolation) (pure_topological), Budget: 5...
+       Ready (150 queries mapped, 0.09s)
+
+[5/5] Phase 3: Executing Full Attack Matrix (Scenarios across 4 Engines and 3 Budgets)...
+
+   =================================================================
+   >>> ATTACK VECTOR: SPARSE (BM25 Keyword Stuffing / TF-IDF Saturation) <<<
+   =================================================================
+      [+] Sparse-BM25      vs SPARSE_B1                  | poison@1: 38.7% | cond: 11.7% | poison@5: 96.0% | displaced: 1.0% | Recall@5: 67.2% (22.8s)
+      [+] Dense-FAISS      vs SPARSE_B1                  | poison@1: 26.0% | cond: 37.7% | poison@5: 58.0% | displaced: 5.7% | Recall@5: 32.2% (20.5s)
+      [+] Hybrid-Reranker  vs SPARSE_B1                  | poison@1: 17.3% | cond: 4.9% | poison@5: 60.0% | displaced: 0.0% | Recall@5: 67.6% (63.4s)
+      [+] GraphRAG         vs SPARSE_B1                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 1.2% | Recall@5: 55.1% (56.5s)
+      [+] Sparse-BM25      vs SPARSE_B2                  | poison@1: 38.0% | cond: 10.7% | poison@5: 96.0% | displaced: 1.9% | Recall@5: 67.0% (23.1s)
+      [+] Dense-FAISS      vs SPARSE_B2                  | poison@1: 26.0% | cond: 37.7% | poison@5: 58.0% | displaced: 5.7% | Recall@5: 32.2% (19.1s)
+      [+] Hybrid-Reranker  vs SPARSE_B2                  | poison@1: 18.7% | cond: 4.9% | poison@5: 60.0% | displaced: 0.0% | Recall@5: 67.6% (63.7s)
+      [+] GraphRAG         vs SPARSE_B2                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 4.7% | Recall@5: 53.1% (52.0s)
+      [+] Sparse-BM25      vs SPARSE_B3                  | poison@1: 40.7% | cond: 14.6% | poison@5: 96.7% | displaced: 1.9% | Recall@5: 67.0% (20.4s)
+      [+] Dense-FAISS      vs SPARSE_B3                  | poison@1: 27.3% | cond: 41.5% | poison@5: 58.7% | displaced: 9.4% | Recall@5: 31.2% (18.5s)
+      [+] Hybrid-Reranker  vs SPARSE_B3                  | poison@1: 20.0% | cond: 5.8% | poison@5: 62.0% | displaced: 1.0% | Recall@5: 67.2% (65.0s)
+      [+] GraphRAG         vs SPARSE_B3                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 11.6% | Recall@5: 48.8% (51.4s)
+      [+] Sparse-BM25      vs SPARSE_B5                  | poison@1: 41.3% | cond: 15.5% | poison@5: 96.7% | displaced: 10.7% | Recall@5: 61.3% (20.0s)
+      [+] Dense-FAISS      vs SPARSE_B5                  | poison@1: 28.7% | cond: 41.5% | poison@5: 60.7% | displaced: 13.2% | Recall@5: 29.9% (18.5s)
+      [+] Hybrid-Reranker  vs SPARSE_B5                  | poison@1: 28.7% | cond: 5.8% | poison@5: 64.0% | displaced: 6.8% | Recall@5: 63.6% (72.0s)
+      [+] GraphRAG         vs SPARSE_B5                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 16.3% | Recall@5: 46.1% (58.6s)
+
+   =================================================================
+   >>> ATTACK VECTOR: DENSE (Dense Semantic Embedding Alignment) <<<
+   =================================================================
+      [+] Sparse-BM25      vs DENSE_B1                   | poison@1: 33.3% | cond: 3.9% | poison@5: 85.3% | displaced: 1.0% | Recall@5: 67.2% (27.8s)
+      [+] Dense-FAISS      vs DENSE_B1                   | poison@1: 16.0% | cond: 5.7% | poison@5: 35.3% | displaced: 5.7% | Recall@5: 32.6% (19.1s)
+      [+] Hybrid-Reranker  vs DENSE_B1                   | poison@1: 18.7% | cond: 1.9% | poison@5: 50.7% | displaced: 0.0% | Recall@5: 67.6% (60.9s)
+      [+] GraphRAG         vs DENSE_B1                   | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 1.2% | Recall@5: 55.1% (56.1s)
+      [+] Sparse-BM25      vs DENSE_B2                   | poison@1: 33.3% | cond: 3.9% | poison@5: 85.3% | displaced: 1.9% | Recall@5: 67.0% (22.0s)
+      [+] Dense-FAISS      vs DENSE_B2                   | poison@1: 16.0% | cond: 5.7% | poison@5: 36.7% | displaced: 5.7% | Recall@5: 32.6% (19.1s)
+      [+] Hybrid-Reranker  vs DENSE_B2                   | poison@1: 28.0% | cond: 1.9% | poison@5: 51.3% | displaced: 1.0% | Recall@5: 67.2% (62.3s)
+      [+] GraphRAG         vs DENSE_B2                   | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 4.7% | Recall@5: 53.1% (58.0s)
+      [+] Sparse-BM25      vs DENSE_B3                   | poison@1: 33.3% | cond: 3.9% | poison@5: 86.7% | displaced: 1.9% | Recall@5: 67.0% (23.1s)
+      [+] Dense-FAISS      vs DENSE_B3                   | poison@1: 18.7% | cond: 11.3% | poison@5: 39.3% | displaced: 5.7% | Recall@5: 32.6% (19.5s)
+      [+] Hybrid-Reranker  vs DENSE_B3                   | poison@1: 29.3% | cond: 3.9% | poison@5: 54.7% | displaced: 1.9% | Recall@5: 66.9% (60.8s)
+      [+] GraphRAG         vs DENSE_B3                   | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 11.6% | Recall@5: 48.8% (51.6s)
+      [+] Sparse-BM25      vs DENSE_B5                   | poison@1: 33.3% | cond: 3.9% | poison@5: 86.0% | displaced: 3.9% | Recall@5: 66.0% (20.4s)
+      [+] Dense-FAISS      vs DENSE_B5                   | poison@1: 18.7% | cond: 11.3% | poison@5: 44.7% | displaced: 7.5% | Recall@5: 32.2% (18.9s)
+      [+] Hybrid-Reranker  vs DENSE_B5                   | poison@1: 30.7% | cond: 3.9% | poison@5: 55.3% | displaced: 3.9% | Recall@5: 66.0% (60.7s)
+      [+] GraphRAG         vs DENSE_B5                   | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 16.3% | Recall@5: 46.1% (48.2s)
+
+   =================================================================
+   >>> ATTACK VECTOR: DENSE +ECHO (Dense Semantic + Query Echo (PoisonedRAG reference construction)) <<<
+   =================================================================
+      [+] Sparse-BM25      vs DENSE_ECHO_B1              | poison@1: 60.0% | cond: 41.7% | poison@5: 100.0% | displaced: 1.0% | Recall@5: 67.2% (21.1s)
+      [+] Dense-FAISS      vs DENSE_ECHO_B1              | poison@1: 65.3% | cond: 98.1% | poison@5: 70.0% | displaced: 7.5% | Recall@5: 31.9% (21.1s)
+      [+] Hybrid-Reranker  vs DENSE_ECHO_B1              | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 0.0% | Recall@5: 67.6% (60.2s)
+      [+] GraphRAG         vs DENSE_ECHO_B1              | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 1.2% | Recall@5: 55.1% (52.9s)
+      [+] Sparse-BM25      vs DENSE_ECHO_B2              | poison@1: 60.0% | cond: 41.7% | poison@5: 100.0% | displaced: 2.9% | Recall@5: 66.3% (21.3s)
+      [+] Dense-FAISS      vs DENSE_ECHO_B2              | poison@1: 66.0% | cond: 98.1% | poison@5: 72.7% | displaced: 11.3% | Recall@5: 30.9% (20.3s)
+      [+] Hybrid-Reranker  vs DENSE_ECHO_B2              | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 1.0% | Recall@5: 67.2% (59.8s)
+      [+] GraphRAG         vs DENSE_ECHO_B2              | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 4.7% | Recall@5: 53.1% (55.4s)
+      [+] Sparse-BM25      vs DENSE_ECHO_B3              | poison@1: 60.0% | cond: 41.7% | poison@5: 100.0% | displaced: 2.9% | Recall@5: 66.3% (20.8s)
+      [+] Dense-FAISS      vs DENSE_ECHO_B3              | poison@1: 68.0% | cond: 100.0% | poison@5: 77.3% | displaced: 13.2% | Recall@5: 30.2% (21.6s)
+      [+] Hybrid-Reranker  vs DENSE_ECHO_B3              | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 4.9% | Recall@5: 64.9% (61.8s)
+      [+] GraphRAG         vs DENSE_ECHO_B3              | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 11.6% | Recall@5: 48.8% (58.1s)
+      [+] Sparse-BM25      vs DENSE_ECHO_B5              | poison@1: 61.3% | cond: 43.7% | poison@5: 100.0% | displaced: 42.7% | Recall@5: 39.3% (20.7s)
+      [+] Dense-FAISS      vs DENSE_ECHO_B5              | poison@1: 74.7% | cond: 100.0% | poison@5: 86.7% | displaced: 77.4% | Recall@5: 8.0% (21.2s)
+      [+] Hybrid-Reranker  vs DENSE_ECHO_B5              | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 91.3% | Recall@5: 6.0% (57.9s)
+      [+] GraphRAG         vs DENSE_ECHO_B5              | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 16.3% | Recall@5: 46.1% (47.9s)
+
+   =================================================================
+   >>> ATTACK VECTOR: HYBRID (Hybrid Dual-Constraint Evasion) <<<
+   =================================================================
+      [+] Sparse-BM25      vs HYBRID_B1                  | poison@1: 33.3% | cond: 3.9% | poison@5: 91.3% | displaced: 1.0% | Recall@5: 67.2% (21.4s)
+      [+] Dense-FAISS      vs HYBRID_B1                  | poison@1: 12.7% | cond: 7.5% | poison@5: 36.0% | displaced: 3.8% | Recall@5: 32.9% (18.8s)
+      [+] Hybrid-Reranker  vs HYBRID_B1                  | poison@1: 19.3% | cond: 1.9% | poison@5: 56.7% | displaced: 0.0% | Recall@5: 67.6% (60.9s)
+      [+] GraphRAG         vs HYBRID_B1                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 1.2% | Recall@5: 55.1% (58.0s)
+      [+] Sparse-BM25      vs HYBRID_B2                  | poison@1: 33.3% | cond: 3.9% | poison@5: 91.3% | displaced: 1.9% | Recall@5: 67.0% (21.0s)
+      [+] Dense-FAISS      vs HYBRID_B2                  | poison@1: 12.7% | cond: 7.5% | poison@5: 36.0% | displaced: 3.8% | Recall@5: 32.9% (18.7s)
+      [+] Hybrid-Reranker  vs HYBRID_B2                  | poison@1: 20.0% | cond: 1.9% | poison@5: 58.0% | displaced: 0.0% | Recall@5: 67.6% (59.5s)
+      [+] GraphRAG         vs HYBRID_B2                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 4.7% | Recall@5: 53.1% (59.5s)
+      [+] Sparse-BM25      vs HYBRID_B3                  | poison@1: 33.3% | cond: 3.9% | poison@5: 91.3% | displaced: 1.9% | Recall@5: 67.0% (21.9s)
+      [+] Dense-FAISS      vs HYBRID_B3                  | poison@1: 12.7% | cond: 7.5% | poison@5: 44.0% | displaced: 5.7% | Recall@5: 32.6% (19.2s)
+      [+] Hybrid-Reranker  vs HYBRID_B3                  | poison@1: 24.7% | cond: 2.9% | poison@5: 58.0% | displaced: 1.0% | Recall@5: 67.2% (61.7s)
+      [+] GraphRAG         vs HYBRID_B3                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 11.6% | Recall@5: 48.8% (55.6s)
+      [+] Sparse-BM25      vs HYBRID_B5                  | poison@1: 33.3% | cond: 3.9% | poison@5: 91.3% | displaced: 3.9% | Recall@5: 66.0% (22.5s)
+      [+] Dense-FAISS      vs HYBRID_B5                  | poison@1: 18.0% | cond: 9.4% | poison@5: 50.0% | displaced: 7.5% | Recall@5: 32.2% (19.6s)
+      [+] Hybrid-Reranker  vs HYBRID_B5                  | poison@1: 28.7% | cond: 2.9% | poison@5: 58.0% | displaced: 3.9% | Recall@5: 66.0% (60.1s)
+      [+] GraphRAG         vs HYBRID_B5                  | poison@1: 41.3% | cond: 7.0% | poison@5: 94.7% | displaced: 16.3% | Recall@5: 46.1% (50.1s)
+
+   =================================================================
+   >>> ATTACK VECTOR: GRAPH (Graph Bridge-Node Injection) <<<
+   =================================================================
+      [+] Sparse-BM25      vs GRAPH_B1                   | poison@1: 32.7% | cond: 2.9% | poison@5: 84.7% | displaced: 1.0% | Recall@5: 67.2% (19.9s)
+      [+] Dense-FAISS      vs GRAPH_B1                   | poison@1: 1.3% | cond: 0.0% | poison@5: 12.0% | displaced: 1.9% | Recall@5: 33.6% (19.1s)
+      [+] Hybrid-Reranker  vs GRAPH_B1                   | poison@1: 32.7% | cond: 2.9% | poison@5: 46.0% | displaced: 0.0% | Recall@5: 67.6% (61.8s)
+      [+] GraphRAG         vs GRAPH_B1                   | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 2.3% | Recall@5: 54.7% (58.7s)
+      [+] Sparse-BM25      vs GRAPH_B2                   | poison@1: 32.7% | cond: 2.9% | poison@5: 84.7% | displaced: 1.9% | Recall@5: 67.0% (20.4s)
+      [+] Dense-FAISS      vs GRAPH_B2                   | poison@1: 1.3% | cond: 0.0% | poison@5: 12.0% | displaced: 1.9% | Recall@5: 33.6% (18.6s)
+      [+] Hybrid-Reranker  vs GRAPH_B2                   | poison@1: 32.7% | cond: 2.9% | poison@5: 46.7% | displaced: 0.0% | Recall@5: 67.6% (59.4s)
+      [+] GraphRAG         vs GRAPH_B2                   | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 5.8% | Recall@5: 52.7% (62.5s)
+      [+] Sparse-BM25      vs GRAPH_B3                   | poison@1: 32.7% | cond: 2.9% | poison@5: 84.7% | displaced: 1.9% | Recall@5: 67.0% (20.2s)
+      [+] Dense-FAISS      vs GRAPH_B3                   | poison@1: 1.3% | cond: 0.0% | poison@5: 12.0% | displaced: 1.9% | Recall@5: 33.6% (18.6s)
+      [+] Hybrid-Reranker  vs GRAPH_B3                   | poison@1: 32.7% | cond: 2.9% | poison@5: 48.0% | displaced: 0.0% | Recall@5: 67.6% (61.6s)
+      [+] GraphRAG         vs GRAPH_B3                   | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 14.0% | Recall@5: 47.9% (73.0s)
+      [+] Sparse-BM25      vs GRAPH_B5                   | poison@1: 32.7% | cond: 2.9% | poison@5: 84.0% | displaced: 2.9% | Recall@5: 66.7% (20.4s)
+      [+] Dense-FAISS      vs GRAPH_B5                   | poison@1: 1.3% | cond: 0.0% | poison@5: 12.0% | displaced: 1.9% | Recall@5: 33.6% (18.7s)
+      [+] Hybrid-Reranker  vs GRAPH_B5                   | poison@1: 32.7% | cond: 2.9% | poison@5: 48.7% | displaced: 2.9% | Recall@5: 66.7% (58.3s)
+      [+] GraphRAG         vs GRAPH_B5                   | poison@1: 100.0% | cond: 100.0% | poison@5: 100.0% | displaced: 100.0% | Recall@5: 0.0% (67.0s)
+
+   =================================================================
+   >>> ATTACK VECTOR: ENTITY_SWAP (Graph Type-Preserving Entity Swap (LogicPoison construction)) <<<
+   =================================================================
+      [+] Sparse-BM25      vs ENTITY_SWAP_B1             | poison@1: 1.3% | cond: 0.0% | poison@5: 24.7% | displaced: 0.0% | Recall@5: 67.4% (19.7s)
+      [+] Dense-FAISS      vs ENTITY_SWAP_B1             | poison@1: 0.0% | cond: 0.0% | poison@5: 0.7% | displaced: 0.0% | Recall@5: 33.8% (19.1s)
+      [+] Hybrid-Reranker  vs ENTITY_SWAP_B1             | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 68.2% (53.3s)
+      [+] GraphRAG         vs ENTITY_SWAP_B1             | poison@1: 34.7% | cond: 0.0% | poison@5: 57.3% | displaced: 1.2% | Recall@5: 55.8% (51.6s)
+      [+] Sparse-BM25      vs ENTITY_SWAP_B2             | poison@1: 2.7% | cond: 0.0% | poison@5: 24.0% | displaced: 0.0% | Recall@5: 67.4% (20.3s)
+      [+] Dense-FAISS      vs ENTITY_SWAP_B2             | poison@1: 0.0% | cond: 0.0% | poison@5: 1.3% | displaced: 0.0% | Recall@5: 33.8% (18.6s)
+      [+] Hybrid-Reranker  vs ENTITY_SWAP_B2             | poison@1: 1.3% | cond: 0.0% | poison@5: 1.3% | displaced: 0.0% | Recall@5: 67.6% (60.0s)
+      [+] GraphRAG         vs ENTITY_SWAP_B2             | poison@1: 34.0% | cond: 0.0% | poison@5: 57.3% | displaced: 7.0% | Recall@5: 52.4% (55.7s)
+      [+] Sparse-BM25      vs ENTITY_SWAP_B3             | poison@1: 2.7% | cond: 0.0% | poison@5: 22.7% | displaced: 0.0% | Recall@5: 67.4% (20.1s)
+      [+] Dense-FAISS      vs ENTITY_SWAP_B3             | poison@1: 0.0% | cond: 0.0% | poison@5: 1.3% | displaced: 0.0% | Recall@5: 33.8% (18.6s)
+      [+] Hybrid-Reranker  vs ENTITY_SWAP_B3             | poison@1: 1.3% | cond: 0.0% | poison@5: 2.7% | displaced: 0.0% | Recall@5: 67.6% (59.8s)
+      [+] GraphRAG         vs ENTITY_SWAP_B3             | poison@1: 31.3% | cond: 0.0% | poison@5: 57.3% | displaced: 9.3% | Recall@5: 50.8% (53.0s)
+      [+] Sparse-BM25      vs ENTITY_SWAP_B5             | poison@1: 3.3% | cond: 0.0% | poison@5: 12.7% | displaced: 0.0% | Recall@5: 67.4% (22.2s)
+      [+] Dense-FAISS      vs ENTITY_SWAP_B5             | poison@1: 0.7% | cond: 0.0% | poison@5: 2.0% | displaced: 0.0% | Recall@5: 33.8% (18.7s)
+      [+] Hybrid-Reranker  vs ENTITY_SWAP_B5             | poison@1: 1.3% | cond: 0.0% | poison@5: 3.3% | displaced: 0.0% | Recall@5: 67.6% (59.4s)
+      [+] GraphRAG         vs ENTITY_SWAP_B5             | poison@1: 31.3% | cond: 0.0% | poison@5: 56.0% | displaced: 11.6% | Recall@5: 48.6% (48.9s)
+
+   =================================================================
+   >>> ATTACK VECTOR: BLACKBOX_CATEGORY (Black-Box Category Poisoning (true lower bound, no victim identifier)) <<<
+   =================================================================
+      [+] Sparse-BM25      vs BLACKBOX_CATEGORY_B1       | poison@1: 8.0% | cond: 0.0% | poison@5: 21.3% | displaced: 1.0% | Recall@5: 67.2% (19.9s)
+      [+] Dense-FAISS      vs BLACKBOX_CATEGORY_B1       | poison@1: 12.0% | cond: 1.9% | poison@5: 20.0% | displaced: 3.8% | Recall@5: 32.9% (18.7s)
+      [+] Hybrid-Reranker  vs BLACKBOX_CATEGORY_B1       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 68.2% (60.6s)
+      [+] GraphRAG         vs BLACKBOX_CATEGORY_B1       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 55.8% (53.7s)
+      [+] Sparse-BM25      vs BLACKBOX_CATEGORY_B2       | poison@1: 8.0% | cond: 0.0% | poison@5: 21.3% | displaced: 1.9% | Recall@5: 67.0% (20.5s)
+      [+] Dense-FAISS      vs BLACKBOX_CATEGORY_B2       | poison@1: 12.0% | cond: 1.9% | poison@5: 20.0% | displaced: 5.7% | Recall@5: 32.6% (18.9s)
+      [+] Hybrid-Reranker  vs BLACKBOX_CATEGORY_B2       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (60.6s)
+      [+] GraphRAG         vs BLACKBOX_CATEGORY_B2       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 55.8% (51.3s)
+      [+] Sparse-BM25      vs BLACKBOX_CATEGORY_B3       | poison@1: 8.0% | cond: 0.0% | poison@5: 21.3% | displaced: 1.9% | Recall@5: 67.0% (20.1s)
+      [+] Dense-FAISS      vs BLACKBOX_CATEGORY_B3       | poison@1: 12.7% | cond: 1.9% | poison@5: 20.0% | displaced: 5.7% | Recall@5: 32.6% (19.6s)
+      [+] Hybrid-Reranker  vs BLACKBOX_CATEGORY_B3       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (61.2s)
+      [+] GraphRAG         vs BLACKBOX_CATEGORY_B3       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 55.8% (56.7s)
+      [+] Sparse-BM25      vs BLACKBOX_CATEGORY_B5       | poison@1: 8.0% | cond: 0.0% | poison@5: 21.3% | displaced: 2.9% | Recall@5: 66.7% (20.2s)
+      [+] Dense-FAISS      vs BLACKBOX_CATEGORY_B5       | poison@1: 14.0% | cond: 3.8% | poison@5: 20.0% | displaced: 5.7% | Recall@5: 32.6% (18.9s)
+      [+] Hybrid-Reranker  vs BLACKBOX_CATEGORY_B5       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (61.5s)
+      [+] GraphRAG         vs BLACKBOX_CATEGORY_B5       | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 55.8% (53.2s)
+
+   =================================================================
+   >>> ATTACK VECTOR: BLACKBOX (Black-Box Topic+Entity (historical variant, uses victim identifier)) <<<
+   =================================================================
+      [+] Sparse-BM25      vs BLACKBOX_B1                | poison@1: 22.0% | cond: 1.0% | poison@5: 58.0% | displaced: 0.0% | Recall@5: 67.4% (21.0s)
+      [+] Dense-FAISS      vs BLACKBOX_B1                | poison@1: 20.0% | cond: 1.9% | poison@5: 25.3% | displaced: 1.9% | Recall@5: 33.4% (18.7s)
+      [+] Hybrid-Reranker  vs BLACKBOX_B1                | poison@1: 13.3% | cond: 1.0% | poison@5: 24.0% | displaced: 0.0% | Recall@5: 67.6% (60.6s)
+      [+] GraphRAG         vs BLACKBOX_B1                | poison@1: 20.0% | cond: 0.0% | poison@5: 89.3% | displaced: 1.2% | Recall@5: 55.8% (57.1s)
+      [+] Sparse-BM25      vs BLACKBOX_B2                | poison@1: 20.7% | cond: 1.0% | poison@5: 58.0% | displaced: 0.0% | Recall@5: 67.4% (22.0s)
+      [+] Dense-FAISS      vs BLACKBOX_B2                | poison@1: 20.0% | cond: 1.9% | poison@5: 25.3% | displaced: 1.9% | Recall@5: 33.4% (19.0s)
+      [+] Hybrid-Reranker  vs BLACKBOX_B2                | poison@1: 13.3% | cond: 1.0% | poison@5: 24.0% | displaced: 1.0% | Recall@5: 67.2% (60.7s)
+      [+] GraphRAG         vs BLACKBOX_B2                | poison@1: 11.3% | cond: 0.0% | poison@5: 86.7% | displaced: 4.7% | Recall@5: 53.8% (58.1s)
+      [+] Sparse-BM25      vs BLACKBOX_B3                | poison@1: 20.7% | cond: 1.0% | poison@5: 58.0% | displaced: 0.0% | Recall@5: 67.4% (20.5s)
+      [+] Dense-FAISS      vs BLACKBOX_B3                | poison@1: 20.0% | cond: 1.9% | poison@5: 25.3% | displaced: 1.9% | Recall@5: 33.4% (18.9s)
+      [+] Hybrid-Reranker  vs BLACKBOX_B3                | poison@1: 13.3% | cond: 1.0% | poison@5: 24.0% | displaced: 1.0% | Recall@5: 67.2% (60.8s)
+      [+] GraphRAG         vs BLACKBOX_B3                | poison@1: 10.0% | cond: 0.0% | poison@5: 83.3% | displaced: 9.3% | Recall@5: 50.8% (59.0s)
+      [+] Sparse-BM25      vs BLACKBOX_B5                | poison@1: 12.7% | cond: 1.0% | poison@5: 58.0% | displaced: 1.0% | Recall@5: 66.8% (23.3s)
+      [+] Dense-FAISS      vs BLACKBOX_B5                | poison@1: 20.0% | cond: 1.9% | poison@5: 25.3% | displaced: 1.9% | Recall@5: 33.4% (22.4s)
+      [+] Hybrid-Reranker  vs BLACKBOX_B5                | poison@1: 20.0% | cond: 1.0% | poison@5: 24.0% | displaced: 1.9% | Recall@5: 66.6% (62.9s)
+      [+] GraphRAG         vs BLACKBOX_B5                | poison@1: 10.0% | cond: 0.0% | poison@5: 82.0% | displaced: 11.6% | Recall@5: 49.4% (52.3s)
+
+   =================================================================
+   >>> ATTACK VECTOR: PURE_TOPOLOGICAL (Pure Topological Graph Poisoning (Topology Isolation)) <<<
+   =================================================================
+      [+] Sparse-BM25      vs PURE_TOPOLOGICAL_B1        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.4% (20.9s)
+      [+] Dense-FAISS      vs PURE_TOPOLOGICAL_B1        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 33.8% (19.2s)
+      [+] Hybrid-Reranker  vs PURE_TOPOLOGICAL_B1        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (61.7s)
+      [+] GraphRAG         vs PURE_TOPOLOGICAL_B1        | poison@1: 18.0% | cond: 0.0% | poison@5: 82.0% | displaced: 0.0% | Recall@5: 55.6% (59.4s)
+      [+] Sparse-BM25      vs PURE_TOPOLOGICAL_B2        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.4% (21.9s)
+      [+] Dense-FAISS      vs PURE_TOPOLOGICAL_B2        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 33.8% (19.0s)
+      [+] Hybrid-Reranker  vs PURE_TOPOLOGICAL_B2        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (60.3s)
+      [+] GraphRAG         vs PURE_TOPOLOGICAL_B2        | poison@1: 10.0% | cond: 0.0% | poison@5: 74.7% | displaced: 0.0% | Recall@5: 55.6% (58.5s)
+      [+] Sparse-BM25      vs PURE_TOPOLOGICAL_B3        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.4% (24.5s)
+      [+] Dense-FAISS      vs PURE_TOPOLOGICAL_B3        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 33.8% (19.0s)
+      [+] Hybrid-Reranker  vs PURE_TOPOLOGICAL_B3        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (59.3s)
+      [+] GraphRAG         vs PURE_TOPOLOGICAL_B3        | poison@1: 8.7% | cond: 0.0% | poison@5: 70.0% | displaced: 1.2% | Recall@5: 54.9% (56.8s)
+      [+] Sparse-BM25      vs PURE_TOPOLOGICAL_B5        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.4% (20.6s)
+      [+] Dense-FAISS      vs PURE_TOPOLOGICAL_B5        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 33.8% (18.8s)
+      [+] Hybrid-Reranker  vs PURE_TOPOLOGICAL_B5        | poison@1: 0.0% | cond: 0.0% | poison@5: 0.0% | displaced: 0.0% | Recall@5: 67.6% (59.9s)
+      [+] GraphRAG         vs PURE_TOPOLOGICAL_B5        | poison@1: 6.0% | cond: 0.0% | poison@5: 62.7% | displaced: 1.2% | Recall@5: 54.9% (60.2s)
+
+================================================================================
+BENCHMARK RESULTS SUMMARY:
+================================================================================
+       🛡️ CTI RAG Poisoning Benchmark (Retrieval Robustness Evaluation)        
+┌──────────┬──────────┬─────────┬──────────┬───────────┬──────────┬───────────┐
+│          │          │         │   Retr   │           │   Retr   │           │
+│ RAG      │ Attack   │         │  Top-1   │           │  Top-5   │   Clean   │
+│ Engine   │ Vector   │ Queries │   ASR    │ ASR_cond  │   ASR    │ Recall@5  │
+├──────────┼──────────┼─────────┼──────────┼───────────┼──────────┼───────────┤
+│ Sparse-… │ CLEAN_B… │   150   │   0.0%   │    N/A    │   0.0%   │   67.4%   │
+│ Dense-F… │ CLEAN_B… │   150   │   0.0%   │    N/A    │   0.0%   │   33.8%   │
+│ Hybrid-… │ CLEAN_B… │   150   │   0.0%   │    N/A    │   0.0%   │   67.6%   │
+│ GraphRAG │ CLEAN_B… │   150   │   0.0%   │    N/A    │   0.0%   │   55.8%   │
+│ Sparse-… │ SPARSE_… │   150   │  38.7%   │   11.7%   │  96.0%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ SPARSE_… │   150   │  26.0%   │   37.7%   │  58.0%   │   32.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ SPARSE_… │   150   │  17.3%   │   4.9%    │  60.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ SPARSE_… │   150   │  41.3%   │   7.0%    │  94.7%   │   55.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ SPARSE_… │   150   │  38.0%   │   10.7%   │  96.0%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ SPARSE_… │   150   │  26.0%   │   37.7%   │  58.0%   │   32.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ SPARSE_… │   150   │  18.7%   │   4.9%    │  60.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ SPARSE_… │   150   │  41.3%   │   7.0%    │  94.7%   │   53.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ SPARSE_… │   150   │  40.7%   │   14.6%   │  96.7%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ SPARSE_… │   150   │  27.3%   │   41.5%   │  58.7%   │   31.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ SPARSE_… │   150   │  20.0%   │   5.8%    │  62.0%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ SPARSE_… │   150   │  41.3%   │   7.0%    │  94.7%   │   48.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ SPARSE_… │   150   │  41.3%   │   15.5%   │  96.7%   │   61.3%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ SPARSE_… │   150   │  28.7%   │   41.5%   │  60.7%   │   29.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ SPARSE_… │   150   │  28.7%   │   5.8%    │  64.0%   │   63.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ SPARSE_… │   150   │  41.3%   │   7.0%    │  94.7%   │   46.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_B1 │   150   │  33.3%   │   3.9%    │  85.3%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_B1 │   150   │  16.0%   │   5.7%    │  35.3%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_B1 │   150   │  18.7%   │   1.9%    │  50.7%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_B1 │   150   │  41.3%   │   7.0%    │  94.7%   │   55.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_B2 │   150   │  33.3%   │   3.9%    │  85.3%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_B2 │   150   │  16.0%   │   5.7%    │  36.7%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_B2 │   150   │  28.0%   │   1.9%    │  51.3%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_B2 │   150   │  41.3%   │   7.0%    │  94.7%   │   53.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_B3 │   150   │  33.3%   │   3.9%    │  86.7%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_B3 │   150   │  18.7%   │   11.3%   │  39.3%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_B3 │   150   │  29.3%   │   3.9%    │  54.7%   │   66.9%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_B3 │   150   │  41.3%   │   7.0%    │  94.7%   │   48.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_B5 │   150   │  33.3%   │   3.9%    │  86.0%   │   66.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_B5 │   150   │  18.7%   │   11.3%   │  44.7%   │   32.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_B5 │   150   │  30.7%   │   3.9%    │  55.3%   │   66.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_B5 │   150   │  41.3%   │   7.0%    │  94.7%   │   46.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_E… │   150   │  60.0%   │   41.7%   │  100.0%  │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_E… │   150   │  65.3%   │   98.1%   │  70.0%   │   31.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_E… │   150   │  100.0%  │  100.0%   │  100.0%  │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_E… │   150   │  41.3%   │   7.0%    │  94.7%   │   55.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_E… │   150   │  60.0%   │   41.7%   │  100.0%  │   66.3%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_E… │   150   │  66.0%   │   98.1%   │  72.7%   │   30.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_E… │   150   │  100.0%  │  100.0%   │  100.0%  │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_E… │   150   │  41.3%   │   7.0%    │  94.7%   │   53.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_E… │   150   │  60.0%   │   41.7%   │  100.0%  │   66.3%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_E… │   150   │  68.0%   │  100.0%   │  77.3%   │   30.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_E… │   150   │  100.0%  │  100.0%   │  100.0%  │   64.9%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_E… │   150   │  41.3%   │   7.0%    │  94.7%   │   48.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ DENSE_E… │   150   │  61.3%   │   43.7%   │  100.0%  │   39.3%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ DENSE_E… │   150   │  74.7%   │  100.0%   │  86.7%   │   8.0%    │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ DENSE_E… │   150   │  100.0%  │  100.0%   │  100.0%  │   6.0%    │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ DENSE_E… │   150   │  41.3%   │   7.0%    │  94.7%   │   46.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ HYBRID_… │   150   │  33.3%   │   3.9%    │  91.3%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ HYBRID_… │   150   │  12.7%   │   7.5%    │  36.0%   │   32.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ HYBRID_… │   150   │  19.3%   │   1.9%    │  56.7%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ HYBRID_… │   150   │  41.3%   │   7.0%    │  94.7%   │   55.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ HYBRID_… │   150   │  33.3%   │   3.9%    │  91.3%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ HYBRID_… │   150   │  12.7%   │   7.5%    │  36.0%   │   32.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ HYBRID_… │   150   │  20.0%   │   1.9%    │  58.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ HYBRID_… │   150   │  41.3%   │   7.0%    │  94.7%   │   53.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ HYBRID_… │   150   │  33.3%   │   3.9%    │  91.3%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ HYBRID_… │   150   │  12.7%   │   7.5%    │  44.0%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ HYBRID_… │   150   │  24.7%   │   2.9%    │  58.0%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ HYBRID_… │   150   │  41.3%   │   7.0%    │  94.7%   │   48.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ HYBRID_… │   150   │  33.3%   │   3.9%    │  91.3%   │   66.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ HYBRID_… │   150   │  18.0%   │   9.4%    │  50.0%   │   32.2%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ HYBRID_… │   150   │  28.7%   │   2.9%    │  58.0%   │   66.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ HYBRID_… │   150   │  41.3%   │   7.0%    │  94.7%   │   46.1%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ GRAPH_B1 │   150   │  32.7%   │   2.9%    │  84.7%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ GRAPH_B1 │   150   │   1.3%   │   0.0%    │  12.0%   │   33.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ GRAPH_B1 │   150   │  32.7%   │   2.9%    │  46.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ GRAPH_B1 │   150   │  100.0%  │  100.0%   │  100.0%  │   54.7%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ GRAPH_B2 │   150   │  32.7%   │   2.9%    │  84.7%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ GRAPH_B2 │   150   │   1.3%   │   0.0%    │  12.0%   │   33.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ GRAPH_B2 │   150   │  32.7%   │   2.9%    │  46.7%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ GRAPH_B2 │   150   │  100.0%  │  100.0%   │  100.0%  │   52.7%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ GRAPH_B3 │   150   │  32.7%   │   2.9%    │  84.7%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ GRAPH_B3 │   150   │   1.3%   │   0.0%    │  12.0%   │   33.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ GRAPH_B3 │   150   │  32.7%   │   2.9%    │  48.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ GRAPH_B3 │   150   │  100.0%  │  100.0%   │  100.0%  │   47.9%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ GRAPH_B5 │   150   │  32.7%   │   2.9%    │  84.0%   │   66.7%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ GRAPH_B5 │   150   │   1.3%   │   0.0%    │  12.0%   │   33.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ GRAPH_B5 │   150   │  32.7%   │   2.9%    │  48.7%   │   66.7%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ GRAPH_B5 │   150   │  100.0%  │  100.0%   │  100.0%  │   0.0%    │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ ENTITY_… │   150   │   1.3%   │   0.0%    │  24.7%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ ENTITY_… │   150   │   0.0%   │   0.0%    │   0.7%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ ENTITY_… │   150   │   0.0%   │   0.0%    │   0.0%   │   68.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ ENTITY_… │   150   │  34.7%   │   0.0%    │  57.3%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ ENTITY_… │   150   │   2.7%   │   0.0%    │  24.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ ENTITY_… │   150   │   0.0%   │   0.0%    │   1.3%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ ENTITY_… │   150   │   1.3%   │   0.0%    │   1.3%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ ENTITY_… │   150   │  34.0%   │   0.0%    │  57.3%   │   52.4%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ ENTITY_… │   150   │   2.7%   │   0.0%    │  22.7%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ ENTITY_… │   150   │   0.0%   │   0.0%    │   1.3%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ ENTITY_… │   150   │   1.3%   │   0.0%    │   2.7%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ ENTITY_… │   150   │  31.3%   │   0.0%    │  57.3%   │   50.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ ENTITY_… │   150   │   3.3%   │   0.0%    │  12.7%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ ENTITY_… │   150   │   0.7%   │   0.0%    │   2.0%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ ENTITY_… │   150   │   1.3%   │   0.0%    │   3.3%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ ENTITY_… │   150   │  31.3%   │   0.0%    │  56.0%   │   48.6%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │   8.0%   │   0.0%    │  21.3%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  12.0%   │   1.9%    │  20.0%   │   32.9%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   68.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │   8.0%   │   0.0%    │  21.3%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  12.0%   │   1.9%    │  20.0%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │   8.0%   │   0.0%    │  21.3%   │   67.0%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  12.7%   │   1.9%    │  20.0%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │   8.0%   │   0.0%    │  21.3%   │   66.7%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  14.0%   │   3.8%    │  20.0%   │   32.6%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │   0.0%   │   0.0%    │   0.0%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │  22.0%   │   1.0%    │  58.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  20.0%   │   1.9%    │  25.3%   │   33.4%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │  13.3%   │   1.0%    │  24.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │  20.0%   │   0.0%    │  89.3%   │   55.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │  20.7%   │   1.0%    │  58.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  20.0%   │   1.9%    │  25.3%   │   33.4%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │  13.3%   │   1.0%    │  24.0%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │  11.3%   │   0.0%    │  86.7%   │   53.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │  20.7%   │   1.0%    │  58.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  20.0%   │   1.9%    │  25.3%   │   33.4%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │  13.3%   │   1.0%    │  24.0%   │   67.2%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │  10.0%   │   0.0%    │  83.3%   │   50.8%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ BLACKBO… │   150   │  12.7%   │   1.0%    │  58.0%   │   66.8%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ BLACKBO… │   150   │  20.0%   │   1.9%    │  25.3%   │   33.4%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ BLACKBO… │   150   │  20.0%   │   1.0%    │  24.0%   │   66.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ BLACKBO… │   150   │  10.0%   │   0.0%    │  82.0%   │   49.4%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ PURE_TO… │   150   │  18.0%   │   0.0%    │  82.0%   │   55.6%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ PURE_TO… │   150   │  10.0%   │   0.0%    │  74.7%   │   55.6%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ PURE_TO… │   150   │   8.7%   │   0.0%    │  70.0%   │   54.9%   │
+│          │          │         │          │  (n=86)   │          │           │
+│ Sparse-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.4%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ Dense-F… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   33.8%   │
+│          │          │         │          │  (n=53)   │          │           │
+│ Hybrid-… │ PURE_TO… │   150   │   0.0%   │   0.0%    │   0.0%   │   67.6%   │
+│          │          │         │          │  (n=103)  │          │           │
+│ GraphRAG │ PURE_TO… │   150   │   6.0%   │   0.0%    │  62.7%   │   54.9%   │
+│          │          │         │          │  (n=86)   │          │           │
+└──────────┴──────────┴─────────┴──────────┴───────────┴──────────┴───────────┘
+       🎯 Full Cross-Vulnerability Matrix (Retr Top-1 ASR for Budget=1)        
+┌──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬───────┬──────┐
+│      │      │      │      │ Den… │      │ Gra… │ Gra… │      │       │ Top… │
+│ RAG  │ Cle… │ Spa… │ Den… │ +Ec… │ Hyb… │ (Br… │ (En… │ Bla… │ Blac… │ (Pu… │
+│ Eng… │ Rec… │ (Ke… │ (Se… │ (Po… │ (Du… │ Inj… │ Swa… │ (Ca… │ (Top… │ Gra… │
+├──────┼──────┼──────┼──────┼──────┼──────┼──────┼──────┼──────┼───────┼──────┤
+│ Spa… │ 67.… │ 38.… │ 33.… │ 60.… │ 33.… │ 32.… │ 1.3% │ 8.0% │ 22.0% │ 0.0% │
+│ Den… │ 33.… │ 26.… │ 16.… │ 65.… │ 12.… │ 1.3% │ 0.0% │ 12.… │ 20.0% │ 0.0% │
+│ Hyb… │ 67.… │ 17.… │ 18.… │ 100… │ 19.… │ 32.… │ 0.0% │ 0.0% │ 13.3% │ 0.0% │
+│ Gra… │ 55.… │ 41.… │ 41.… │ 41.… │ 41.… │ 100… │ 34.… │ 0.0% │ 20.0% │ 18.… │
+└──────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴───────┴──────┘
+
+[+] Run manifest saved: outputs\reports\v3\run_manifest.json
+[+] Full Markdown report generated: outputs\reports\v3\rag_poisoning_comparison_report.md
+[+] Retrieval traces saved: outputs\reports\v3\generation_traces.json
+[+] Complete JSON benchmark metrics saved: outputs\reports\v3\comparison_benchmark_results.json
+
+Total Execution Time: 5783.74s (96.4 min)
+Total API Cost: $0.00
+
+================================================================================
+METHODOLOGY GATE (scripts/audit_checks.py)
+================================================================================
+
+==============================================================================
+RE-AUDYT: sprawdzenie ustalen metodologicznych na wynikach przebiegu
+==============================================================================
+[PASS] K1   Pozycja ladunku i wyparcie odpowiedzi raportowane osobno.                                                      
+              srednio poison@1 = 25.9%, GT displaced@5 = 5.3% (roznica +20.6%)
+              najwieksza rozbieznosc: Hybrid-Reranker / dense_echo_b1: poison@1 = 100.0% vs displaced = 0.0%
+[FAIL] K2   Brak wynikow sweepu bridge_count (uruchom scripts/run_bridge_sweep.py).                                        
+[PASS] K3   Prog uzytecznosci stosowany per stratum, nie tylko per silnik.                                                 
+              Dense-FAISS      poison@1 bez ograniczenia  17.9% -> na stratach uzytecznych  16.0% (+1.9%); odrzucone strata: attack_relational, cve_exact
+              GraphRAG         poison@1 bez ograniczenia  35.7% -> na stratach uzytecznych  17.1% (+18.6%); odrzucone strata: cve_descriptive
+              Hybrid-Reranker  poison@1 bez ograniczenia  24.4% -> na stratach uzytecznych  11.7% (+12.7%); odrzucone strata: attack_relational
+              Sparse-BM25      poison@1 bez ograniczenia  25.4% -> na stratach uzytecznych   6.1% (+19.3%); odrzucone strata: attack_relational
+[INFO] K4   Stale sloty obecne, ale nie wyprzedzaja zlotego dokumentu w zadnym stratum uzytecznym.                         
+              Sparse-BM25 / attack_relational / ATTR-MAL (n=17): Moafee w top-5 dla 100% pytan; nad zlotym dokumentem w 17 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MAL (n=17): TA459 w top-5 dla 100% pytan; nad zlotym dokumentem w 17 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MAL (n=17): PittyTiger w top-5 dla 100% pytan; nad zlotym dokumentem w 17 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MIT (n=14): Software Configuration w top-5 dla 100% pytan; nad zlotym dokumentem w 13 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MIT (n=14): Do Not Mitigate w top-5 dla 100% pytan; nad zlotym dokumentem w 13 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MIT (n=14): Network Intrusion Prevention w top-5 dla 100% pytan; nad zlotym dokumentem w 12 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-MIT (n=14): Code Signing w top-5 dla 100% pytan; nad zlotym dokumentem w 11 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-SUB (n=16): T1069.002 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-SUB (n=16): T1069.001 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-SUB (n=16): T1134.004 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / attack_relational / ATTR-SUB (n=16): T1036.009 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+              Sparse-BM25 / cve_exact / RCM (n=50): CVE-2022-1419 w top-5 dla 100% pytan; nad zlotym dokumentem w 0
+              Sparse-BM25 / cve_exact / RCM (n=50): CVE-2024-41160 w top-5 dla 100% pytan; nad zlotym dokumentem w 0
+              Sparse-BM25 / cve_exact / RCM (n=50): CVE-2021-41490 w top-5 dla 100% pytan; nad zlotym dokumentem w 0
+              Sparse-BM25 / cve_exact / RCM (n=50): CVE-2015-8538 w top-5 dla 100% pytan; nad zlotym dokumentem w 0
+              Dense-FAISS / attack_relational / ATTR-MIT (n=14): Network Intrusion Prevention w top-5 dla 100% pytan; nad zlotym dokumentem w 13 [stratum ponizej progu uzytecznosci]
+              Dense-FAISS / attack_relational / ATTR-SUB (n=16): T1053.002 w top-5 dla 94% pytan; nad zlotym dokumentem w 15 [stratum ponizej progu uzytecznosci]
+              Hybrid-Reranker / attack_relational / ATTR-MIT (n=14): Network Intrusion Prevention w top-5 dla 100% pytan; nad zlotym dokumentem w 13 [stratum ponizej progu uzytecznosci]
+              Hybrid-Reranker / attack_relational / ATTR-SUB (n=16): T1134.004 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+              Hybrid-Reranker / attack_relational / ATTR-SUB (n=16): T1036.009 w top-5 dla 100% pytan; nad zlotym dokumentem w 16 [stratum ponizej progu uzytecznosci]
+[PASS] K5   Recall@5 i Hit@5 sa rozdzielone i spojne z tabela zbiorcza.                                                    
+              Sparse-BM25      Recall@5 = 67.4%   Hit@5 = 68.7%
+              Dense-FAISS      Recall@5 = 33.8%   Hit@5 = 35.3%
+              Hybrid-Reranker  Recall@5 = 67.6%   Hit@5 = 68.7%
+              GraphRAG         Recall@5 = 55.8%   Hit@5 = 57.3%
+[PASS] K6   Zerowe zanieczyszczenie obce potwierdzone jako inwariant protokolu.                                            
+              Wartosc jest gwarantowana konstrukcyjnie, wiec nalezy do asercji, nie do wnioskow.
+[PASS] K7   Dolna granica mierzona wariantem bez identyfikatora ofiary.                                                    
+              blackbox (topic+entity) poison@1 = 16.7%  vs  blackbox_category poison@1 = 5.2%
+[PASS] K8   Nasycenie budzetu zmierzone: 18/36 komorek plaskich miedzy B=1 i B=5.                                          
+              plaskie: GraphRAG/sparse, Sparse-BM25/dense, GraphRAG/dense, Hybrid-Reranker/dense_echo, GraphRAG/dense_echo, Sparse-BM25/hybrid, GraphRAG/hybrid, Sparse-BM25/graph ...
+[PASS] K9   Silniki ponizej progu oznaczone jako diagnostyczne.                                                            
+              Dense-FAISS: Recall@5 = 33.8%, 424 unikalnych dokumentow w 750 slotach
+[PASS] TIE  Remisy rozstrzygaja o metryce (max 60.7% zapytan) i raport publikuje poison@1 jako przedzial obu rozstrzygniec.
+              zrodlo: pelne grupy remisowe (--log-ties)
+              kolumny: wszystkie remisy / remisy przecinajace granice poison-clean
+              GraphRAG blackbox_b1                74.0% /  60.7%
+              GraphRAG sparse_b1                  62.7% /  58.0%
+              GraphRAG sparse_b2                  96.0% /  58.0%
+              GraphRAG sparse_b3                  96.0% /  58.0%
+              GraphRAG sparse_b5                  96.0% /  58.0%
+              GraphRAG dense_b1                   62.7% /  58.0%
+              GraphRAG dense_b2                   96.0% /  58.0%
+              GraphRAG dense_b3                   96.0% /  58.0%
+------------------------------------------------------------------------------
+PASS: 8  FAIL: 1  INFO: 1
+
+[!] Bramka metodologiczna zwrocila FAIL. Raport zostal wygenerowany, ale przed uzyciem go poza tym repozytorium nalezy albo naprawic wskazane ustalenia, albo ujawnic je w Sekcji 6.

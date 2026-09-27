@@ -1,0 +1,81 @@
+{
+  "queries": 150,
+  "corpus_size": 24000,
+  "budget": 1,
+  "median_query_entity_degree": 12.25,
+  "predicted_crossover_n": 74.5205832509386,
+  "sweep": [
+    {
+      "bridge_count": 10,
+      "poison_at_1": 0.17333333333333334,
+      "poison_at_5": 0.76,
+      "median_degree_won": 112.0,
+      "median_degree_lost": 6.5,
+      "poison_at_1_by_stratum": {
+        "attack": 0.0,
+        "exact": 0.0,
+        "descr": 0.52
+      }
+    },
+    {
+      "bridge_count": 20,
+      "poison_at_1": 0.18,
+      "poison_at_5": 0.7733333333333333,
+      "median_degree_won": 80.0,
+      "median_degree_lost": 6.0,
+      "poison_at_1_by_stratum": {
+        "attack": 0.0,
+        "exact": 0.0,
+        "descr": 0.54
+      }
+    },
+    {
+      "bridge_count": 40,
+      "poison_at_1": 0.18,
+      "poison_at_5": 0.7933333333333333,
+      "median_degree_won": 80.0,
+      "median_degree_lost": 6.0,
+      "poison_at_1_by_stratum": {
+        "attack": 0.0,
+        "exact": 0.0,
+        "descr": 0.54
+      }
+    },
+    {
+      "bridge_count": 80,
+      "poison_at_1": 0.18,
+      "poison_at_5": 0.84,
+      "median_degree_won": 80.0,
+      "median_degree_lost": 6.0,
+      "poison_at_1_by_stratum": {
+        "attack": 0.0,
+        "exact": 0.0,
+        "descr": 0.54
+      }
+    },
+    {
+      "bridge_count": 160,
+      "poison_at_1": 0.54,
+      "poison_at_5": 0.8866666666666667,
+      "median_degree_won": 3.0,
+      "median_degree_lost": 23.0,
+      "poison_at_1_by_stratum": {
+        "attack": 0.08,
+        "exact": 1.0,
+        "descr": 0.54
+      }
+    },
+    {
+      "bridge_count": 320,
+      "poison_at_1": 0.6333333333333333,
+      "poison_at_5": 0.9,
+      "median_degree_won": 3.0,
+      "median_degree_lost": 18.0,
+      "poison_at_1_by_stratum": {
+        "attack": 0.36,
+        "exact": 1.0,
+        "descr": 0.54
+      }
+    }
+  ]
+}
