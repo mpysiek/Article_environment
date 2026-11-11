@@ -99,7 +99,6 @@ data/             data provenance, checksums and the corpus manifest (the data i
 | `README.md` | English | what the benchmark is, how to check and re-run it |
 | [`data/README.md`](data/README.md) | English | data sources, versions, licences, checksums, corpus manifest |
 | [`tests/README.md`](tests/README.md) | English | what each test file guards and how to run the suite |
-| [`AGENTS.md`](AGENTS.md) | Polish | methodological rules the code enforces, state of each run, working rules for the repository |
 | [`CHANGELOG.md`](CHANGELOG.md) | Polish | every change to the measurement and reporting layers |
 
 Material removed from the repository stays in the git history; its last tracked state is
