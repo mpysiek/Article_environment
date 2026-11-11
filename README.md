@@ -125,7 +125,6 @@ reported run used.
 | Article | Repository |
 | :--- | :--- |
 | Graph-Traversal | `GraphRAG` (the `engine_name` stored in the result files) |
-| 429 tests | 333 tests |
 | restricted McNemar family, 43 tests (Table 9) | `scripts/mcnemar_restricted.py`, files `mcnemar_restricted.*` |
 | unrestricted family, 74 tests | Section 3.1 of `rag_poisoning_comparison_report.md` |
 
