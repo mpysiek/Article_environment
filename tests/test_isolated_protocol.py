@@ -484,6 +484,7 @@ class TestBenchmarkAndReporterIntegration:
         assert out_file.exists()
         assert "Recommendation 3" in md or "Izolowany" in md
         assert "0.0%" in md
-        assert "Pareto" in md
+        assert "Pareto" not in md
+        assert "Status użyteczności" in md
         assert "VIABLE" in md
         assert "ResilientGraphRAG" in md

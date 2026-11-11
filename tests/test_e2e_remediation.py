@@ -836,7 +836,8 @@ class TestTier1_R5_MetrologicalReportingAndStats:
     def test_t1_f_r5_02_pareto_optimal_classification(self):
         pass  # Verified via reporter ranking table
 
-    def test_t1_f_r5_02_ranking_table_contains_pareto_status(self, tmp_path):
+    def test_t1_f_r5_02_engine_table_states_utility_and_no_pareto_claim(self, tmp_path):
+        # The article draws no Pareto front and does not rank engines; the report must not either.
         out_file = tmp_path / "report.md"
         r1 = EngineBenchmarkResult(
             engine_name="Eng1", attack_type="sparse", total_queries=10,
@@ -845,7 +846,9 @@ class TestTier1_R5_MetrologicalReportingAndStats:
             ground_truth_retention=0.0, conflict_detection_rate=0.0
         )
         content = reporter.BenchmarkReporter.generate_markdown_report([r1], out_file)
-        assert "Pareto" in content or "Ranking" in content
+        assert "Status użyteczności (Recall >= 50%)" in content
+        assert "Pareto" not in content
+        assert "ASR" not in content.replace("a nie ASR", "").replace("Zou i in.) ASR", "")
 
     def test_t1_f_r5_02_utility_threshold_is_50_percent(self):
         threshold = getattr(reporter, "MIN_UTILITY_THRESHOLD", 0.50)

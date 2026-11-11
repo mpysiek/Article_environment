@@ -14,10 +14,13 @@ intentionally not run, so every number is a deterministic, zero-cost measurement
 | :--- | :--- |
 | Corpus | 24,000 documents from MITRE ATT&CK (STIX 2.1), CTIBench, CISA KEV and CVE Program cvelistV5 |
 | Queries | 150 in three strata: ATT&CK Relational, CVE Exact-Match, CVE Descriptive |
-| Engines | Sparse-BM25, Dense-FAISS (bge-small-en-v1.5), Hybrid-Reranker (RRF + ms-marco-MiniLM-L-6-v2), GraphRAG (entity graph) |
+| Engines | Sparse-BM25, Dense-FAISS (bge-small-en-v1.5), Hybrid-Reranker (RRF + ms-marco-MiniLM-L-6-v2), GraphRAG (entity graph; called *Graph-Traversal* in the article) |
 | Attacks | 9 vectors (incl. a `query_echo` stress arm and topological bridge injection), budgets 1, 2, 3, 5 |
 | Protocol | per-query isolated index (`--isolated-targets`), no defences, top-k = 5, seed 42 |
 | Metrics | `poison@1`, `poison@5`, `poison@1 cond`, `GT displaced@5`, with bounds over complete score-tie groups |
+
+The article is the reference description of the study. Where this repository and the article
+disagree, the article is right and the repository is to be corrected.
 
 ## Which run is which
 
@@ -52,7 +55,7 @@ The audit gate on run v3 ends with `PASS: 9  FAIL: 0  INFO: 1`. GitHub Actions r
 and this gate on every push.
 
 `scripts/regenerate_report.py` rebuilds the report from stored traces and **overwrites** the
-report in `--in-dir`; never point it at `outputs/reports/v2/`.
+report in `--in-dir`. Scripts that write results refuse `outputs/reports/v2/`, the archived run.
 
 ### Re-run the benchmark
 
@@ -111,6 +114,21 @@ reported run used.
 * No defence is enabled; all figures are upper bounds for undefended retrieval.
 * GraphRAG has no point estimate of `poison@1`: rank 1 is often a score tie, so results are
   reported as ranges over every ordering of the tie group.
+* The engines are not ranked. Viable strata differ between engines, so per-engine averages
+  describe different groups of queries.
+* Hybrid-Reranker reranks a pool of 10 candidates fused by RRF from the top 10 of BM25 and of
+  the dense engine. When the two lists share no document, each engine contributes only its
+  ranks 1–5, so five payloads can push the answer out of the pool before the cross-encoder
+  sees it.
+
+## Names and counts in the article
+
+| Article | Repository |
+| :--- | :--- |
+| Graph-Traversal | `GraphRAG` (the `engine_name` stored in the result files) |
+| 429 tests | 333 tests. The article's code state is commit `1824048`. Since then four corpus-manifest tests were added (433) and the 100 tests of the removed LLM stage and defence filters were dropped; the tests of the retrieval measurement are the same |
+| restricted McNemar family, 43 tests (Table 9) | `scripts/mcnemar_restricted.py`, files `mcnemar_restricted.*` |
+| unrestricted family, 74 tests | Section 3.1 of `rag_poisoning_comparison_report.md` |
 
 ## Citation
 

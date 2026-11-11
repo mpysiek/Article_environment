@@ -33,3 +33,17 @@ class BenchmarkConfig:
     QUERY_ECHO: bool = False  # Reference mode: distinct vectors without verbatim query echo
 
 config = BenchmarkConfig()
+
+#: The run described in manuscripts v2 and v3. Nothing may be written there.
+ARCHIVE_REPORTS_DIR = BASE_DIR / "outputs" / "reports" / "v2"
+
+
+def refuse_archive_dir(path) -> Path:
+    """Returns `path`, or raises if a script is about to write into the archived v2 run."""
+    resolved = Path(path).resolve()
+    if resolved == ARCHIVE_REPORTS_DIR.resolve():
+        raise SystemExit(
+            f"Odmowa zapisu do {ARCHIVE_REPORTS_DIR}: to archiwum przebiegu v2. "
+            f"Podaj --out-dir albo skopiuj folder i wskaż kopię."
+        )
+    return Path(path)

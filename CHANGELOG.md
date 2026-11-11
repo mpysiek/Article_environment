@@ -5,6 +5,53 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 
 ---
 
+## [1.3.3] - 2026-11-11
+
+### Summary
+Zgodność z artykułem: **pomiar, dane i liczby bez zmian**. Raport przestaje ogłaszać tezy,
+których artykuł nie zawiera, a reguły agregacji mają jedną definicję.
+
+Kontrola: raport v3 odtworzony kodem sprzed zmian jest identyczny z zapisanym; po zmianach
+różni się 5 wierszami tabeli w Sekcji 3 (te same liczby, bez numerów i statusu Pareto),
+etykietami i zdaniami opisanymi niżej. Bramka audytu: 9 PASS, 0 FAIL, 1 INFO, wyjście
+identyczne z `outputs/logs/v3_audit.log`. `mcnemar_restricted.py`: 43 testy, 34 bez par
+niezgodnych, 2 istotne.
+
+### Raport (`src/visualization/reporter.py`, raport v3 odtworzony)
+- **Usunięty front Pareto i ranking silników.** Sekcja 3 to teraz zestawienie średnich bez
+  kolumny „Rank" i bez statusu „Pareto Optimal"; Obserwacja 1 nie wskazuje zwycięzcy. Artykuł
+  nie rankinguje architektur, a oś frontu (`poison@5`) była sprzeczna z regułą 2.1.
+  `compute_pareto_ranking()` zostaje jako źródło średnich; pola `is_pareto_optimal`
+  i `pareto_rank` nie trafiają do raportu.
+- **Nazwa „ASR" znika z etykiet.** „Retr ASR@1" (71 wierszy Sekcji 3.1), „Budget=N (ASR@1)",
+  „ASR_cond" → `poison@1`, `poison@1 cond`. Zostaje jedno zdanie, które tłumaczy, dlaczego
+  metryki nie nazywają się ASR. Nazwy pól w JSON (`retrieval_asr_*`) bez zmian.
+- **Obserwacja 3** podaje `poison@1` GraphRAG na stratach użytecznych z zakresem remisowym
+  (12,0%, 0,0–87,0%) i nie porównuje go punktowo z innymi silnikami.
+- Ramka zakresu: nota o puli kandydatów Hybrid-Reranker i o nazwie *Graph-Traversal*.
+- Rodzina 74 testów McNemara w Sekcji 3.1 — te same testy i wartości (artykuł ją cytuje).
+
+### Porządki
+- Nowy `src/evaluation/strata.py`: `stratum_of`, `template_of`, próg 0,50, wykrywanie stałych
+  slotów. Zastępuje kopie w raporterze, `audit_checks.py`, `mcnemar_restricted.py`
+  i `tie_audit.py`. `run_bridge_sweep.py` zachowuje własne etykiety strat (format plików sweepu).
+- `--in-dir` wymagane w `audit_checks.py`, `mcnemar_restricted.py` i `tie_audit.py` (domyślnie
+  wskazywały archiwum v2). `mcnemar_restricted.py` dostaje `--out-dir`. Zapis do
+  `outputs/reports/v2/` kończy się odmową (`refuse_archive_dir()` w `src/config.py`).
+- `mcnemar_restricted.py` wyklucza porównania pozycji 1 według pełnej grupy remisowej, gdy
+  ślady ją zawierają. Na v3 wynik identyczny jak wcześniej.
+- Usunięty martwy kod raportera: `constant_slot_offenders()` i gałąź testów
+  `cross_sparse` / `cross_dense` (takich scenariuszy nie tworzy żaden skrypt). Ostatni stan:
+  commit `8d95bdf`.
+- Dwa testy sprawdzały obecność słowa „Pareto" w raporcie; teraz sprawdzają jego brak.
+  Liczba testów bez zmian: 333.
+
+### Dokumentacja
+- `AGENTS.md`: Sekcja 0 „Artykuł jest źródłem prawdy"; pula kandydatów; jedna definicja strat.
+- `README.md`: tabela nazw i liczb artykuł ↔ repozytorium (Graph-Traversal, 429 / 333 testy).
+
+---
+
 ## [1.3.2] - 2026-11-11
 
 ### Summary

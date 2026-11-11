@@ -10,7 +10,7 @@ A check can come back FAIL (the finding still stands), PASS (it is resolved), or
 not defects to fix).
 
 Usage:
-    python scripts/audit_checks.py --in-dir outputs/reports/v2
+    python scripts/audit_checks.py --in-dir outputs/reports/v3
 """
 import argparse
 import collections
@@ -30,11 +30,15 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-STRATUM_BY_CATEGORY = {"cve_lookup": "cve_exact", "cve_descriptive": "cve_descriptive"}
-
-
-def stratum_of(cat: str) -> str:
-    return STRATUM_BY_CATEGORY.get(cat or "", "attack_relational")
+from src.evaluation.strata import (  # noqa: E402  (needs PROJECT_ROOT on sys.path)
+    CONSTANT_SLOT_MIN_GROUP as K4_MIN_GROUP,
+    CONSTANT_SLOT_SHARE as K4_SHARE,
+    MIN_UTILITY_THRESHOLD,
+    clean_stratum_recall,
+    constant_slot_findings,
+    stratum_of,
+    template_of,
+)
 
 
 class Report:
@@ -112,13 +116,8 @@ def check_k2(sweep, rep: Report):
 def _clean_stratum_recall(data) -> Dict[str, Dict[str, float]]:
     """Per engine, per stratum clean Recall@5, read off the clean baseline."""
     out: Dict[str, Dict[str, float]] = {}
-    for d in data:
-        if d["attack_type"] != "clean_baseline":
-            continue
-        buckets = collections.defaultdict(list)
-        for t in d["traces"]:
-            buckets[stratum_of(t["query_category"])].append(t["gt_recall_at_k"])
-        out[d["engine_name"]] = {st: sum(v) / len(v) for st, v in buckets.items() if v}
+    for (eng, st), rec in clean_stratum_recall(data).items():
+        out.setdefault(eng, {})[st] = rec
     return out
 
 
@@ -137,7 +136,7 @@ def check_k3(data, report_text, rep: Report):
 
     lines, worst_gap = [], 0.0
     for eng, per_st in sorted(recalls.items()):
-        viable = {st for st, r in per_st.items() if r >= 0.50}
+        viable = {st for st, r in per_st.items() if r >= MIN_UTILITY_THRESHOLD}
         dropped = sorted(set(per_st) - viable)
         att = [d for d in data if d["engine_name"] == eng and d["attack_type"] != "clean_baseline"]
         if not att:
@@ -169,62 +168,13 @@ def check_k3(data, report_text, rep: Report):
                 "\n".join(lines))
 
 
-#: Constant-slot detection works per question template, not per stratum: an artefact confined
-#: to one template (GraphRAG's two techniques on all 17 malware questions of v2 = 34% of the
-#: relational stratum) never reaches a per-stratum threshold. Groups smaller than this are too
-#: small for "present in >90% of the questions" to mean anything.
-K4_MIN_GROUP = 5
-K4_SHARE = 0.90
-
-
-def template_of(query_id: str) -> str:
-    """Question template of a query, read off its id (RCM-..., DESC-..., ATTR-MAL-..., ...)."""
-    parts = (query_id or "").split("-")
-    return "-".join(parts[:2]) if parts[0] == "ATTR" else parts[0]
-
-
+# Constant-slot detection works per question template, not per stratum: an artefact confined
+# to one template (GraphRAG's two techniques on all 17 malware questions of v2 = 34% of the
+# relational stratum) never reaches a per-stratum threshold. The detection itself lives in
+# src/evaluation/strata.py, shared with the reporter.
 def constant_slots(data) -> List[Dict[str, Any]]:
-    """Documents holding a clean top-5 slot for >90% of the questions of one template group.
-
-    For each, counts the questions where the document ranks above the gold document (or the
-    gold document is not in top-5 at all). That count is what matters: when every question of
-    a group shares all its words but the identifier, the non-gold slots are filled by the
-    documents that best match the shared words, which is the same set for every question --
-    structural for single-document key lookup and harmless while the gold document ranks above
-    it. A constant document ranked above the gold one is not: it takes a place the attacker
-    would otherwise have to fill.
-    """
-    recall = _clean_stratum_recall(data)
-    out = []
-    for d in data:
-        if d["attack_type"] != "clean_baseline":
-            continue
-        groups = collections.defaultdict(list)
-        for t in d["traces"]:
-            groups[(stratum_of(t["query_category"]), template_of(t["query_id"]))].append(t)
-        for (st, tpl), ts in sorted(groups.items()):
-            if len(ts) < K4_MIN_GROUP:
-                continue
-            counts = collections.Counter(did for t in ts for did in t["retrieved_doc_ids"])
-            for doc, c in counts.most_common():
-                share = c / len(ts)
-                if share <= K4_SHARE:
-                    break
-                above = 0
-                for t in ts:
-                    ids = t["retrieved_doc_ids"]
-                    gold = set(t.get("ground_truth_doc_ids") or [])
-                    if doc not in ids or doc in gold:
-                        continue
-                    g_ranks = [i for i, x in enumerate(ids) if x in gold]
-                    if not g_ranks or ids.index(doc) < min(g_ranks):
-                        above += 1
-                out.append({
-                    "engine": d["engine_name"], "stratum": st, "template": tpl, "doc": doc,
-                    "share": share, "n": len(ts), "above_gold": above,
-                    "viable": recall.get(d["engine_name"], {}).get(st, 0.0) >= 0.50,
-                })
-    return out
+    """Constant top-5 documents per template group of the clean baseline (see strata.py)."""
+    return constant_slot_findings(data)
 
 
 def check_k4(data, rep: Report):
@@ -339,7 +289,7 @@ def check_k8(data, rep: Report):
 def check_k9(data, rep: Report):
     """Engines below the utility floor must be flagged, so they can be kept out of aggregates."""
     clean = {d["engine_name"]: d for d in data if d["attack_type"] == "clean_baseline"}
-    diag = [e for e, d in clean.items() if d["clean_recall_top5"] < 0.50]
+    diag = [e for e, d in clean.items() if d["clean_recall_top5"] < MIN_UTILITY_THRESHOLD]
     if not diag:
         rep.add("K9", "INFO", "Wszystkie silniki powyzej progu uzytecznosci.")
         return
@@ -456,7 +406,8 @@ def run_audit(in_dir) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Re-audit a benchmark run against findings K1-K9.")
-    parser.add_argument("--in-dir", type=str, default="outputs/reports/v2")
+    parser.add_argument("--in-dir", type=str, required=True,
+                        help="Results directory to check, e.g. outputs/reports/v3 (read-only).")
     args = parser.parse_args()
     return run_audit(args.in_dir)
 

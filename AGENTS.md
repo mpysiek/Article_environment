@@ -17,6 +17,27 @@ Stan na 11.11.2026 (przebiegi z 27.09.2026): przebiegiem głównym jest **v3**
 
 ---
 
+## 0. Artykuł jest źródłem prawdy
+
+Opisem badania jest artykuł („Rank Placement Is Not Displacement…"). Kod i raporty mają go
+odtwarzać. Jeżeli repozytorium mówi co innego niż artykuł, poprawia się repozytorium; jeżeli
+ustalenie dotyczy treści artykułu, zgłasza się je autorowi i nie „naprawia" w kodzie.
+
+* **Żadna zmiana nie może ruszyć liczby z artykułu.** Po zmianie w warstwie raportu porównaj
+  raport v3 przed i po: komórki tabel muszą być identyczne.
+* **Raport nie rankinguje silników i nie wyznacza frontu Pareto.** Artykuł tego nie robi:
+  strata użyteczne różnią się między silnikami, więc ich średnie opisują różne grupy pytań.
+* **Nazwy.** Silnik `GraphRAG` (pole `engine_name` w danych) nosi w artykule nazwę
+  *Graph-Traversal*. Artykuł podaje 429 testów — to stan z commitu `1824048`. Później
+  doszły 4 testy manifestu korpusu (433), a po usunięciu etapu LLM i filtrów obronnych
+  zostały 333; testy pomiaru wyszukiwania są te same.
+* **Pula kandydatów Hybrid-Reranker** (`candidate_k = 10`, `retrievers.py`): reranker ocenia
+  10 kandydatów po fuzji RRF z list top-10 BM25 i dense. Przy rozłącznych listach każdy
+  składnik wnosi pozycje 1–5, więc pięć ładunków usuwa odpowiedź z puli przed rerankingiem.
+  Wyparcie Hybrid-Reranker przy B = 5 opisuje tę pulę, nie reranker.
+
+---
+
 ## 1. Co ten benchmark mierzy (i czego nie)
 
 * **Wyłącznie warstwa wyszukiwania.** Etapu LLM nie ma (`llm_stage_ran = False`); jego kod
@@ -112,8 +133,8 @@ Raport publikuje zakresy jako osobną kolumnę i tabele w Sekcji 6. Strażnik: c
 
 Domyślnym trybem referencyjnym jest `query_echo=False`, w którym wektory zachowują swoją
 specyfikę techniczną. Dosłowne doklejenie pytania ofiary (`dense_echo`) to konstrukcja
-bazowa PoisonedRAG i jednocześnie górne ograniczenie — **nie wchodzi do uśrednionej
-odporności w rankingu**, ma własną kolumnę. Różnica jest istotna: dla Hybrid-Reranker
+bazowa PoisonedRAG i jednocześnie górne ograniczenie — **nie wchodzi do żadnej uśrednionej
+wartości**, ma własną kolumnę. Różnica jest istotna: dla Hybrid-Reranker
 `poison@1` na ramieniu echo wynosi 100,0% przy każdym budżecie, a na ramieniu referencyjnym
 średnio 0,7% (strata użyteczne, 32 scenariusze; tak samo w v2 i v3).
 
@@ -195,7 +216,7 @@ dokumentów" nie opisuje efektywnej trudności żadnego z zadań.
      prefiksem identyfikatora w pytaniu.
 
 Dwa z trzech strat są więc zadaniami dopasowania łańcuchów znaków. Próg użyteczności ≥ 50%
-i front Pareto rozstrzygają się w dużej mierze na nich.
+i zależne od niego porównania rozstrzygają się w dużej mierze na nich.
 
 Szablony pytań (`QUERY_TEMPLATES` w `src/corpus/real_query_loader.py`, flaga `--query-set`):
 
@@ -396,9 +417,12 @@ pytań relacyjnych).
   ```
   Raport odtwarza się z zapisanych śladów w `comparison_benchmark_results.json`.
 * **`regenerate_report.py`, `mcnemar_restricted.py` i `tie_audit.py` (bez `--out-dir`) zapisują
-  wynik do `--in-dir`**, a `tie_audit.py` ma domyślnie `--in-dir outputs/reports/v2`. Nigdy nie
-  kieruj ich zapisu do `outputs/reports/v2/`. Żeby przeliczyć archiwum, skopiuj je najpierw do
-  osobnego folderu albo podaj `--out-dir`.
+  wynik do `--in-dir`.** `--in-dir` jest wymagane (także w `audit_checks.py`), a zapis do
+  `outputs/reports/v2/` kończy się odmową (`refuse_archive_dir()` w `src/config.py`). Żeby
+  przeliczyć archiwum, podaj `--out-dir` albo skopiuj je do osobnego folderu.
+* **Strata, próg użyteczności i wykrywanie stałych slotów mają jedną definicję:**
+  `src/evaluation/strata.py`. Korzystają z niej raporter, `audit_checks.py`,
+  `mcnemar_restricted.py` i `tie_audit.py`. Nie kopiuj tych reguł do skryptów.
 * **Po zmianach uruchom testy:** `pytest tests/ -q -p no:cacheprovider` (333 testy,
   ok. pół minuty). Flaga `-p no:cacheprovider` nie tworzy `.pytest_cache`. Bez zbudowanego
   korpusu `test_data_integrity.py` nie przejdzie; CI go pomija. Opis plików testów:

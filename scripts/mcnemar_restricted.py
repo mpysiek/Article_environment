@@ -12,17 +12,18 @@ uses a narrower family that follows its aggregation rules:
 * two outcomes: payload at rank 1, and GT displacement on the queries with a clean hit
   for both engines;
 * budget replicates with identical per-query outcome vectors collapsed into one test;
-* rank-1 comparisons excluded when any query of either engine has a rank-1/rank-2 score tie
-  that crosses the payload/clean boundary (the outcome is then decided by identifier
-  collation, not by retrieval);
+* rank-1 comparisons excluded when any query of either engine has a rank-1 score tie that
+  contains both a payload and a clean document (the outcome is then decided by identifier
+  collation, not by retrieval). Runs recorded with --log-ties are checked on the complete
+  rank-1 tie group; archived runs carry only the rank-1/rank-2 flag;
 * Holm step-down correction over the resulting family.
 
 The statistical test itself is reporter.mcnemar_test_detailed, i.e. the same implementation
 as the unrestricted family.
 
 Usage:
-    python scripts/mcnemar_restricted.py --in-dir outputs/reports/v2
-Outputs (in --in-dir): mcnemar_restricted.json, mcnemar_restricted.md
+    python scripts/mcnemar_restricted.py --in-dir outputs/reports/v3
+Outputs (in --out-dir, default --in-dir): mcnemar_restricted.json, mcnemar_restricted.md
 """
 import argparse
 import json
@@ -39,28 +40,27 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+from src.config import config, refuse_archive_dir
+from src.evaluation.strata import MIN_UTILITY_THRESHOLD as FLOOR
+from src.evaluation.strata import is_poison_id as is_poison
+from src.evaluation.strata import stratum_of
 from src.visualization.reporter import mcnemar_test_detailed
 
-TOP_K = 5
-FLOOR = 0.50
-STRATUM = {"cve_lookup": "cve_exact", "cve_descriptive": "cve_descriptive"}
+TOP_K = config.TOP_K
 REFERENCE_ARM = ["sparse", "dense", "hybrid", "graph", "entity_swap",
                  "blackbox_category", "blackbox", "pure_topological"]
 
 
-def stratum_of(category):
-    return STRATUM.get(category, "attack_relational")
-
-
-def is_poison(doc_id):
-    return doc_id.startswith("POISON")
-
-
 def main():
     ap = argparse.ArgumentParser(description="Restricted McNemar family (manuscript Table 9).")
-    ap.add_argument("--in-dir", default="outputs/reports/v2")
+    ap.add_argument("--in-dir", required=True,
+                    help="Results directory to read, e.g. outputs/reports/v3.")
+    ap.add_argument("--out-dir", default=None,
+                    help="Where to write the two output files (default: --in-dir).")
     args = ap.parse_args()
     in_dir = Path(args.in_dir)
+    out_dir = refuse_archive_dir(args.out_dir or args.in_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
     data = json.loads((in_dir / "comparison_benchmark_results.json").read_text(encoding="utf-8"))
     res = {(d["engine_name"], d["attack_type"]): {t["query_id"]: t for t in d["traces"]} for d in data}
     engines = sorted({d["engine_name"] for d in data})
@@ -83,6 +83,10 @@ def main():
     hit = {e: {q for q, t in clean[e].items() if t["gt_hit_at_k"]} for e in viable}
 
     def tie_crosses(t):
+        # Complete rank-1 tie group when the run logged it; the two bounds differ exactly when
+        # the group holds both a payload and a clean document.
+        if t.get("tie_logged"):
+            return t["tie_p1_lo"] != t["tie_p1_hi"]
         ids = t["retrieved_doc_ids"]
         return bool(t.get("top1_is_score_tie")) and len(ids) > 1 and is_poison(ids[0]) != is_poison(ids[1])
 
@@ -139,7 +143,7 @@ def main():
         "viable_strata": viable,
         "excluded_rank1_comparisons": sorted({(e["pair"][0], e["pair"][1], e["vector"]) for e in excluded}),
     }
-    (in_dir / "mcnemar_restricted.json").write_text(
+    (out_dir / "mcnemar_restricted.json").write_text(
         json.dumps({"summary": summary, "tests": tests, "excluded": excluded}, indent=1), encoding="utf-8")
 
     lines = ["# Restricted McNemar family (manuscript Table 9)", "",
@@ -153,9 +157,9 @@ def main():
                      f"({t['b']}, {t['c']}) | {t['statistic']} | {t['p_raw']:.2e} | {t['p_holm']:.2e} |")
     lines += ["", "Excluded rank-1 comparisons (tie crossing): " +
               "; ".join(f"{a} vs {b} / {v}" for a, b, v in summary["excluded_rank1_comparisons"])]
-    (in_dir / "mcnemar_restricted.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out_dir / "mcnemar_restricted.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[+] family={m}, no discordant={summary['no_discordant_pairs']}, significant={summary['significant']}")
-    print(f"[+] Saved {in_dir / 'mcnemar_restricted.json'} and {in_dir / 'mcnemar_restricted.md'}")
+    print(f"[+] Saved {out_dir / 'mcnemar_restricted.json'} and {out_dir / 'mcnemar_restricted.md'}")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,16 @@ from rich.console import Console
 from rich.table import Table
 from src.evaluation.metrics import EngineBenchmarkResult, GenerationTrace
 from src.config import config
+from src.evaluation.strata import (
+    MIN_UTILITY_THRESHOLD,
+    POISON_ID_PREFIX,
+    STRATUM_BY_CATEGORY,
+    STRATUM_DEFAULT,
+    constant_slot_findings,
+    stratum_of,
+    template_of,
+)
+from src.evaluation.strata import clean_stratum_recall as compute_stratum_recall
 
 console = Console()
 
@@ -81,16 +91,6 @@ def mcnemar_test(outcomes_a: List[bool], outcomes_b: List[bool]) -> Tuple[float,
     res = mcnemar_test_detailed(outcomes_a, outcomes_b)
     return res["stat"], res["p_val"], res["is_sig"]
 
-MIN_UTILITY_THRESHOLD = 0.50
-
-#: Query categories grouped into reporting strata. Aggregating across these hides that they
-#: are different tasks: exact-match id lookup, description matching, and graph traversal.
-STRATUM_BY_CATEGORY = {
-    "cve_lookup": "cve_exact",
-    "cve_descriptive": "cve_descriptive",
-}
-STRATUM_DEFAULT = "attack_relational"
-
 STRATUM_LABELS = {
     "cve_exact": "CVE Exact-Match (ID w pytaniu)",
     "cve_descriptive": "CVE Descriptive (bez ID)",
@@ -122,10 +122,6 @@ STRATUM_NOTES = {
 }
 
 
-def stratum_of(category: str) -> str:
-    return STRATUM_BY_CATEGORY.get(category or "", STRATUM_DEFAULT)
-
-
 def attack_base(attack_type: str) -> str:
     """Strips the budget suffix: 'blackbox_category_b3' -> 'blackbox_category'.
 
@@ -133,11 +129,6 @@ def attack_base(attack_type: str) -> str:
     'blackbox_category'; comparing bases keeps the two vectors distinct.
     """
     return re.sub(r"_b\d+$", "", (attack_type or "").lower())
-
-#: Every attacker in src/attacks/poisoning.py mints its payload id with this prefix, which is
-#: what lets a trace holding only document ids recover whether a rank-1 tie straddles the
-#: poison/clean boundary.
-POISON_ID_PREFIX = "POISON_"
 
 #: The query-echo arm appends the victim's question verbatim to the payload. It is declared an
 #: upper-bound stress test, so it must not be averaged into a headline robustness number
@@ -184,27 +175,10 @@ def tie_bounds(result: EngineBenchmarkResult) -> Tuple[float, float, int]:
     return ((hits - won) / n, (hits + lost) / n, won + lost)
 
 
-def compute_stratum_recall(
-    results: List[EngineBenchmarkResult]
-) -> Dict[Tuple[str, str], float]:
-    """Per (engine, stratum) clean Recall@5, read strictly off the clean baseline."""
-    out: Dict[Tuple[str, str], float] = {}
-    for r in results:
-        if r.attack_type.lower() != "clean_baseline":
-            continue
-        buckets: Dict[str, List[float]] = {}
-        for t in r.traces:
-            st = stratum_of(getattr(t, "query_category", ""))
-            buckets.setdefault(st, []).append(getattr(t, "gt_recall_at_k", 0.0))
-        for st, vals in buckets.items():
-            out[(r.engine_name, st)] = sum(vals) / len(vals) if vals else 0.0
-    return out
-
-
 def viable_strata_for(
     stratum_recall: Dict[Tuple[str, str], float],
     engine: str,
-    threshold: float = 0.50
+    threshold: float = MIN_UTILITY_THRESHOLD
 ) -> set:
     """Strata where this engine clears the utility floor.
 
@@ -247,98 +221,6 @@ def restricted_poison_rates(
 
 def is_echo_arm(attack_type: str) -> bool:
     return attack_base(attack_type) in ECHO_ATTACK_BASES
-
-
-def template_of(query_id: str) -> str:
-    """Question template of a query, read off its id (RCM-..., DESC-..., ATTR-MAL-..., ...)."""
-    parts = (query_id or "").split("-")
-    return "-".join(parts[:2]) if parts[0] == "ATTR" else parts[0]
-
-
-def constant_slot_findings(
-    results: List[EngineBenchmarkResult],
-    share_threshold: float = 0.90,
-    min_group: int = 5
-) -> List[Dict[str, Any]]:
-    """Documents holding a clean top-k slot for more than `share_threshold` of the questions
-    of one template group, with the number of questions where they rank above the gold one.
-
-    Grouping by template rather than by stratum is what finds an artefact confined to one
-    template (in v2, GraphRAG's two techniques on all 17 malware questions: 34% of its
-    stratum). The above-gold count is what separates a harmless constant slot from a harmful
-    one: when the questions of a group share every word but the identifier, the non-gold slots
-    go to the documents that best match the shared words -- the same ones for every question.
-    That is structural for single-document key lookup. It changes a measurement only when the
-    constant document ranks above the gold one, because the attacker then needs one payload
-    fewer to push the gold document out of the window.
-    """
-    recall = compute_stratum_recall(results)
-    out: List[Dict[str, Any]] = []
-    for r in results:
-        if r.attack_type.lower() != "clean_baseline":
-            continue
-        groups: Dict[Tuple[str, str], List[Any]] = {}
-        for t in r.traces:
-            key = (stratum_of(getattr(t, "query_category", "")), template_of(getattr(t, "query_id", "")))
-            groups.setdefault(key, []).append(t)
-        for (st, tpl), ts in sorted(groups.items()):
-            if len(ts) < min_group:
-                continue
-            counts: Dict[str, int] = {}
-            for t in ts:
-                for did in getattr(t, "retrieved_doc_ids", []) or []:
-                    counts[did] = counts.get(did, 0) + 1
-            for doc, c in sorted(counts.items(), key=lambda kv: -kv[1]):
-                share = c / len(ts)
-                if share <= share_threshold:
-                    break
-                above = 0
-                for t in ts:
-                    ids = list(getattr(t, "retrieved_doc_ids", []) or [])
-                    gold = set(getattr(t, "ground_truth_doc_ids", []) or [])
-                    if doc not in ids or doc in gold:
-                        continue
-                    g_ranks = [i for i, x in enumerate(ids) if x in gold]
-                    if not g_ranks or ids.index(doc) < min(g_ranks):
-                        above += 1
-                out.append({
-                    "engine": r.engine_name, "stratum": st, "template": tpl, "doc": doc,
-                    "share": share, "n": len(ts), "above_gold": above,
-                    "viable": recall.get((r.engine_name, st), 0.0) >= 0.50,
-                })
-    return out
-
-
-def constant_slot_offenders(
-    results: List[EngineBenchmarkResult],
-    share_threshold: float = 0.90
-) -> List[Tuple[str, str, str, float]]:
-    """(engine, stratum, doc_id, share) where one document holds a top-k slot for nearly
-    every query of a stratum.
-
-    This is the same degeneracy that disqualifies an engine from the robustness aggregates,
-    but measured per slot rather than per engine: a document that is present regardless of the
-    question is not a retrieval result, and it permanently costs the context window one slot.
-    """
-    offenders = []
-    for r in results:
-        if r.attack_type.lower() != "clean_baseline":
-            continue
-        buckets: Dict[str, List[Any]] = {}
-        for t in r.traces:
-            buckets.setdefault(stratum_of(getattr(t, "query_category", "")), []).append(t)
-        for st, ts in buckets.items():
-            counts: Dict[str, int] = {}
-            for t in ts:
-                for did in getattr(t, "retrieved_doc_ids", []) or []:
-                    counts[did] = counts.get(did, 0) + 1
-            if not counts:
-                continue
-            doc, c = max(counts.items(), key=lambda kv: kv[1])
-            share = c / len(ts)
-            if share >= share_threshold:
-                offenders.append((r.engine_name, st, doc, share))
-    return offenders
 
 
 def is_isolated_run(results: List[EngineBenchmarkResult], explicit_flag: Optional[bool] = None) -> bool:
@@ -518,9 +400,9 @@ class BenchmarkReporter:
         table.add_column("RAG Engine", style="cyan", justify="left")
         table.add_column("Attack Vector", style="magenta", justify="left")
         table.add_column("Queries", justify="center")
-        table.add_column("Retr Top-1 ASR", justify="center")
-        table.add_column("ASR_cond", justify="center")
-        table.add_column("Retr Top-5 ASR", justify="center")
+        table.add_column("poison@1", justify="center")
+        table.add_column("poison@1 cond", justify="center")
+        table.add_column("poison@5", justify="center")
         table.add_column("Clean Recall@5", style="green", justify="center")
 
         for r in results:
@@ -568,7 +450,7 @@ class BenchmarkReporter:
             if any(attack_base(r.attack_type) == att for r in results)
         ]
         if active_attacks:
-            matrix_table = Table(title="🎯 Full Cross-Vulnerability Matrix (Retr Top-1 ASR for Budget=1)")
+            matrix_table = Table(title="🎯 Full Cross-Vulnerability Matrix (poison@1 for Budget=1)")
             matrix_table.add_column("RAG Engine", style="cyan", justify="left")
             matrix_table.add_column("Clean Recall@5", style="green", justify="center")
             for _, label in active_attacks:
@@ -714,7 +596,7 @@ class BenchmarkReporter:
             matrix_rows.append(row_vals)
         cross_matrix_table = tabulate(matrix_rows, headers=matrix_headers, tablefmt="github")
         
-        # Attack Curves Table (ASR@1 for Budgets)
+        # Attack Curves Table (poison@1 for Budgets)
         import re
         detected_budgets = set()
         for r in results:
@@ -740,7 +622,7 @@ class BenchmarkReporter:
                 if has_any:
                     curve_rows.append(row)
         
-        budget_headers = ["RAG Engine", "Attack Vector"] + [f"Budget={b} (ASR@1)" for b in budgets]
+        budget_headers = ["RAG Engine", "Attack Vector"] + [f"Budget={b} (poison@1)" for b in budgets]
         budget_curves_table = tabulate(
             curve_rows,
             headers=budget_headers,
@@ -866,7 +748,7 @@ class BenchmarkReporter:
             + _sep + stratum_tables[st]
             for st in present_strata
         ) if present_strata else "*Brak danych stratyfikacyjnych.*"
-        # Dynamic Analysis: Calculate empirical resilience metrics and Pareto ranking
+        # Dynamic Analysis: per-engine averages on viable strata
         attack_results = [r for r in results if r.attack_type.lower() != "clean_baseline"]
         pareto_ranking = compute_pareto_ranking(
             results,
@@ -874,12 +756,14 @@ class BenchmarkReporter:
             stratum_recall=clean_stratum_recall
         ) if results else []
 
+        # The table lists engines; it does not rank them. The article draws no Pareto front and
+        # orders no architectures: viable strata differ per engine, so the averages below are
+        # computed on different groups of queries. Viable engines come first, by name.
         ranking_rows = []
-        for rank, item in enumerate(pareto_ranking, 1):
-            viability_badge = "VIABLE (Pareto Optimal)" if item.get("is_pareto_optimal", False) else ("VIABLE" if item.get("is_viable", False) else "NON_VIABLE")
+        for item in sorted(pareto_ranking, key=lambda x: (0 if x.get("is_viable", False) else 1, x["engine"])):
+            viability_badge = "VIABLE" if item.get("is_viable", False) else "NON_VIABLE"
             echo_p1 = item.get("avg_poison_at_1_echo")
             row = [
-                f"#{rank}",
                 item["engine"],
                 viability_badge,
                 f"{item.get('avg_recall', 0.0):.1%}",
@@ -895,9 +779,9 @@ class BenchmarkReporter:
         # Column names state the quantity that is actually computed. `poison@1` is the
         # any-poison rank-1 rate (identical to the targeted rate under the isolated protocol,
         # but they are not the same quantity and the header must not claim otherwise), and the
-        # @5 column is the targeted top-5 rate that forms the Pareto axis.
+        # @5 column is the targeted top-5 rate.
         ranking_headers = [
-            "Rank", "Engine", "Status Pareto (Recall >= 50%)",
+            "Engine", "Status użyteczności (Recall >= 50%)",
             "Clean Recall@5 Bazowy (Wyższy=Lepszy)",
             "Średni poison@1, ramię referencyjne (Niższy=Lepszy)",
             "Średni targeted poison@5, ramię referencyjne (Niższy=Lepszy)",
@@ -1058,41 +942,10 @@ class BenchmarkReporter:
                         else:
                             outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
                             outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
-                            metric_name = "Retr ASR@1"
+                            metric_name = "poison@1"
 
                         _record_test(att, eng1.engine_name, eng2.engine_name,
                                      metric_name, outcomes_a, outcomes_b)
-
-        hybrid_results = [r for r in results if "hybrid" in r.engine_name.lower()]
-        hybrid_cs = [r for r in hybrid_results if r.attack_type.lower() == "cross_sparse"]
-        hybrid_cd = [r for r in hybrid_results if r.attack_type.lower() == "cross_dense"]
-
-        if hybrid_cs and hybrid_cd:
-            for eng1 in hybrid_cs:
-                for eng2 in hybrid_cd:
-                    pair_key = ("CROSS_SPARSE vs CROSS_DENSE", tuple(sorted([eng1.engine_name, eng2.engine_name])))
-                    if pair_key in seen_test_pairs:
-                        continue
-                    seen_test_pairs.add(pair_key)
-
-                    traces_b_map = {t.query_id: t for t in eng2.traces}
-                    aligned = [(ta, traces_b_map[ta.query_id]) for ta in eng1.traces if ta.query_id in traces_b_map]
-
-                    outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
-                    outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
-                    metric_name = "Retr ASR@1"
-                    test_res = mcnemar_test_detailed(outcomes_a, outcomes_b)
-                    raw_tests.append({
-                        "condition": f"CROSS_SPARSE vs CROSS_DENSE ({metric_name})",
-                        "eng1": f"{eng1.engine_name} (sparse)",
-                        "eng2": f"{eng2.engine_name} (dense)",
-                        "discordant": f"({test_res['b']}, {test_res['c']})",
-                        "variant": test_res["variant"],
-                        "stat_label": test_res["stat_label"],
-                        "stat": test_res["stat"],
-                        "p_val": test_res["p_val"],
-                        "budgets": set(),
-                    })
 
         mcnemar_rows = []
         if raw_tests:
@@ -1161,20 +1014,18 @@ class BenchmarkReporter:
 
         viable_engines = [p["engine"] for p in pareto_ranking if p.get("is_viable", False)]
         non_viable_engines = [p for p in pareto_ranking if not p.get("is_viable", False)]
-        pareto_optimal_engines = [p["engine"] for p in pareto_ranking if p.get("is_pareto_optimal", False)]
 
         if viable_engines:
             v_str = ", ".join(f"**`{e}`**" for e in viable_engines)
-            po_str = ", ".join(f"**`{e}`**" for e in pareto_optimal_engines) if pareto_optimal_engines else "brak"
             obs1 = (
-                f"1. **Analiza Użyteczności i Frontu Pareto:** Zgodnie z bezwzględnym progiem użyteczności bazowej "
+                f"1. **Analiza Użyteczności:** Zgodnie z bezwzględnym progiem użyteczności bazowej "
                 f"(Clean Recall@5 >= 50% mierzonym wyłącznie na czystym korpusie), architekturami spełniającymi "
-                f"kryterium użyteczności w domenie CTI są: {v_str}. Na niezdominowanym froncie Pareto "
-                f"w przestrzeni (Clean Recall bazowy ↑ vs średni targeted poison@5 na ramieniu "
-                f"referencyjnym i stratach użytecznych ↓) plasują się: {po_str}."
+                f"kryterium użyteczności w domenie CTI są: {v_str}. Strata użyteczne różnią się między "
+                f"silnikami, więc średnie z Sekcji 3 opisują różne grupy zapytań i nie ustalają "
+                f"kolejności architektur."
             )
         else:
-            obs1 = "1. **Analiza Użyteczności i Frontu Pareto:** Żaden z testowanych silników nie przekroczył bezwzględnego progu minimalnej użyteczności bazowej (Clean Recall@5 >= 50% na czystym korpusie)."
+            obs1 = "1. **Analiza Użyteczności:** Żaden z testowanych silników nie przekroczył bezwzględnego progu minimalnej użyteczności bazowej (Clean Recall@5 >= 50% na czystym korpusie)."
 
         if non_viable_engines:
             nv_str = ", ".join(f"{p['engine']} ({p['avg_recall']:.1%})" for p in non_viable_engines)
@@ -1224,14 +1075,29 @@ class BenchmarkReporter:
             other_mean = (sum(other_vals) / len(other_vals)) if other_vals else None
 
             if gr_sp_r is not None and other_mean is not None:
-                verdict = (
-                    "niżej niż" if gr_sp_r < other_mean - 1e-9
-                    else ("wyżej niż" if gr_sp_r > other_mean + 1e-9 else "na poziomie")
+                # The restricted value is tie-dependent too, so it is given with its range and
+                # is not ordered against the other engines: a point comparison would present
+                # an identifier-collation artefact as a difference between architectures, and
+                # the other engines' viable strata are a different group of queries anyway.
+                gr_viable = viable_strata_for(clean_stratum_recall, "GraphRAG", MIN_UTILITY_THRESHOLD)
+                gr_ts = [t for t in gr_sp.traces if stratum_of(getattr(t, "query_category", "")) in gr_viable]
+                if gr_ts and all(getattr(t, "tie_logged", False) for t in gr_ts):
+                    r_lo = sum(1 for t in gr_ts if t.tie_p1_lo) / len(gr_ts)
+                    r_hi = sum(1 for t in gr_ts if t.tie_p1_hi) / len(gr_ts)
+                elif gr_ts:
+                    hits = sum(1 for t in gr_ts if getattr(t, "has_poison_in_top1", False))
+                    r_lo = (hits - sum(1 for t in gr_ts if trace_tie_winner(t) == "poison")) / len(gr_ts)
+                    r_hi = (hits + sum(1 for t in gr_ts if trace_tie_winner(t) == "clean")) / len(gr_ts)
+                else:
+                    r_lo = r_hi = gr_sp_r
+                range_txt = (
+                    f" (zakres remisowy **{r_lo:.1%}–{r_hi:.1%}**)" if abs(r_hi - r_lo) > 1e-9 else ""
                 )
                 lex_line = (
                     f"   * **Keyword stuffing:** na stratach, na których GraphRAG ma użyteczność bazową, "
-                    f"ładunek leksykalny zajmuje pozycję 1 w **{gr_sp_r:.1%}** zapytań — {verdict} "
-                    f"średnia pozostałych silników użytecznych (**{other_mean:.1%}**). "
+                    f"ładunek leksykalny zajmuje pozycję 1 w **{gr_sp_r:.1%}** zapytań{range_txt}. "
+                    f"Średnia pozostałych silników użytecznych na ich własnych stratach użytecznych "
+                    f"wynosi **{other_mean:.1%}**; obie wartości opisują różne grupy zapytań. "
                     f"Wartość nieograniczona do strat użytecznych wynosi {gr_sp.retrieval_asr_top1:.1%} i jest "
                     f"zawyżona przez stratum o zerowym Recall bazowym."
                 )
@@ -1552,7 +1418,7 @@ class BenchmarkReporter:
                 "`scripts/run_comparison_benchmark.py`, który zapisuje `run_manifest.json`.*"
             )
 
-        # ASR_cond denominators differ per engine because each is conditioned on that engine's
+        # poison@1 cond denominators differ per engine because each is conditioned on that engine's
         # own clean baseline. Spelling them out stops the column being read as like-for-like.
         _denoms = {}
         for r in results:
@@ -1683,9 +1549,15 @@ class BenchmarkReporter:
             "(`entity_swap`, `pure_topological`) wypadają miejscami niżej niż `blackbox_category`.",
             "> * **Ramię query-echo jest osobnym testem skrajnym.** Dosłowne doklejenie pytania ofiary "
             "do ładunku raportowane jest jako odrębna kolumna górnego ograniczenia i **nie wchodzi** "
-            "do uśrednionej odporności w rankingu.",
+            "do uśrednionych wartości w Sekcji 3.",
             "> * **Arytmetyka okna:** przy budżecie B równym rozmiarowi okna k spadek Clean Recall@5 "
             "do zera jest konsekwencją zajęcia wszystkich slotów, a nie załamania algorytmu.",
+            "> * **Pula kandydatów Hybrid-Reranker.** Reranker ocenia 10 kandydatów po fuzji RRF "
+            "z list top-10 BM25 i dense. Gdy listy są rozłączne, każdy składnik wnosi do puli tylko "
+            "pozycje 1–5, więc pięć ładunków może usunąć odpowiedź z puli, zanim zobaczy ją reranker.",
+            "> * **Nazwy.** Silnik zapisany w danych jako `GraphRAG` nosi w artykule nazwę "
+            "*Graph-Traversal*. Raport nie ustala kolejności architektur: strata użyteczne różnią się "
+            "między silnikami, więc ich średnie opisują różne grupy zapytań.",
         ])
         md_content = f"""{doc_title}
 
@@ -1708,11 +1580,11 @@ w {corpus_desc} pod kątem następujących wektorów zatruwania bazy wiedzy (*co
 7. **Black-Box Category Poisoning** — najsłabszy testowany model zagrożeń: atakujący zna wyłącznie kategorię zapytań, żadnego identyfikatora ofiary. Uwaga: „najsłabszy adwersarz" nie znaczy „najniższy zmierzony `poison@1`" — wektory white-box o innej konstrukcji wypadają miejscami niżej.
 8. **Black-Box Topic+Entity** — wariant historyczny, korzystający z identyfikatora ofiary (nie jest więc adwersarzem blind).
 
-oraz walidacji krzyżowej (*cross-attack robustness*), analizy warunkowej $ASR_{{\\text{{cond}}}}$ (*Conditional ASR*){ablation_clause}.
+oraz walidacji krzyżowej (*cross-attack robustness*), analizy warunkowej `poison@1 cond`{ablation_clause}.
 
 {protocol_desc}
 
-Procedura pomiarowa została zremediowana metrologicznie: wyeliminowano błędy kolizji przestrzeni nazw GraphRAG, zaimplementowano separację celowanego przejęcia (`retrieval_asr_targeted`) od obcego zanieczyszczenia, a ocenę odporności oparto na analizie frontu Pareto z bezwzględnym progiem użyteczności (Recall@5 $\\ge$ 50%).
+Procedura pomiarowa została zremediowana metrologicznie: wyeliminowano błędy kolizji przestrzeni nazw GraphRAG, zaimplementowano separację celowanego przejęcia (`retrieval_asr_targeted`) od obcego zanieczyszczenia, a średnie międzyscenariuszowe liczone są wyłącznie na stratach powyżej bezwzględnego progu użyteczności (Recall@5 $\\ge$ 50%).
 
 {exec_mode_desc}
 Wyniki zawierają 95% przedziały ufności Wilsona (*Wilson Score Interval*) oraz testy istotności statystycznej McNemara.
@@ -1721,7 +1593,7 @@ Wyniki zawierają 95% przedziały ufności Wilsona (*Wilson Score Interval*) ora
 
 {sec2_title}
 
-*Kolumna **ASR_cond** ($ASR_{{\\text{{cond}}}}$) mierzy skuteczność przejęcia pozycji Top-1 wraz z 95% przedziałem ufności Wilsona wyłącznie na podzbiorze zapytań ($n_{{\\text{{cond}}}}$), dla których czysty silnik w warunkach bazowych odnalazł właściwy dokument Ground Truth (clean hit > 0).*{isolated_note}
+*Kolumna **`poison@1 cond`** mierzy udział zapytań z ładunkiem na pozycji 1 wraz z 95% przedziałem ufności Wilsona wyłącznie na podzbiorze zapytań ($n_{{\\text{{cond}}}}$), dla których czysty silnik w warunkach bazowych odnalazł właściwy dokument Ground Truth (clean hit > 0).*{isolated_note}
 
 {md_table}
 
@@ -1770,9 +1642,9 @@ Pomiar zegarem monotonicznym `time.perf_counter()`; podano medianę i rozstęp �
 
 ---
 
-## 3. Empiryczny Ranking Odporności Architektur (Wyliczony Algorytmicznie)
+## 3. Średnie per Silnik na Stratach Użytecznych (zestawienie, nie ranking)
 
-*Zakres obowiązywania rankingu: wartości uśredniono **wyłącznie po stratach, na których dany silnik osiąga Clean Recall@5 ≥ 50%** (kolumna „Strata wyłączone" podaje, co odpadło) oraz **wyłącznie po ramieniu referencyjnym**; ramię query-echo, jako test skrajny, ma własną kolumnę i nie wchodzi do średniej. Sam podział zbioru zapytań (po ~1/3 na stratum) pozostaje arbitralny, więc ranking jest kompozytem poglądowym — rozstrzygające są tabele stratyfikacji w Sekcji 2.2.*
+*Zakres obowiązywania zestawienia: wartości uśredniono **wyłącznie po stratach, na których dany silnik osiąga Clean Recall@5 ≥ 50%** (kolumna „Strata wyłączone" podaje, co odpadło) oraz **wyłącznie po ramieniu referencyjnym**; ramię query-echo, jako test skrajny, ma własną kolumnę i nie wchodzi do średniej. Sam podział zbioru zapytań (po ~1/3 na stratum) pozostaje arbitralny, a strata użyteczne różnią się między silnikami, więc wiersze opisują różne grupy zapytań i **nie ustalają kolejności architektur** — rozstrzygające są tabele stratyfikacji w Sekcji 2.2.*
 
 {ranking_table}
 
@@ -1807,7 +1679,7 @@ Uśrednione po silnikach nie-diagnostycznych i po stratach użytecznych każdego
 ## 6. Limitations and Threats to Validity
 
 {corpus_validity}
-2. **White-Box Attack Oracle vs Weakest Tested Adversary:** The benchmark evaluates white-box targeted adversaries with query access and a category-level adversary that never touches a victim identifier. Note that the targeted adversaries are handed `key_terms`, which for the relational stratum contain the *names of the answer documents* (`real_query_loader.py` builds them as `[entity] + gold`). Their payloads therefore repeat the gold answer, which is a stronger oracle than "access to the query and the target assertion". `entity_swap` deliberately filters the gold answer out of its anchors, so part of the ASR gap between it and the lexical vectors is a difference in answer leakage, not only in attack construction.
+2. **White-Box Attack Oracle vs Weakest Tested Adversary:** The benchmark evaluates white-box targeted adversaries with query access and a category-level adversary that never touches a victim identifier. Note that the targeted adversaries are handed `key_terms`, which for the relational stratum contain the *names of the answer documents* (`real_query_loader.py` builds them as `[entity] + gold`). Their payloads therefore repeat the gold answer, which is a stronger oracle than "access to the query and the target assertion". `entity_swap` deliberately filters the gold answer out of its anchors, so part of the `poison@1` gap between it and the lexical vectors is a difference in answer leakage, not only in attack construction.
 2a. **No Defenses By Design:** No input filtering, deduplication, perplexity screening or index hygiene is enabled at any stage. This is a deliberate scope boundary, not an omission: every figure describes an undefended retrieval stage and is therefore an upper bound. Numbers here are not comparable to work that reports defended pipelines.
 2b. **Retrieval-Stage Metrics:** `poison@1` and `poison@5` are payload-ranking measurements, not end-to-end attack success. `GT displaced@5` and `poison@1 cond` are the quantities that carry any claim about an attack "succeeding". Note that `poison@1 cond` is conditioned on each engine's *own* clean baseline, so its denominator differs per engine ({cond_denoms}); the column compares rates computed on different subsets of queries and is not a like-for-like cross-engine comparison.
 {sec6_topo_desc}
@@ -1815,7 +1687,7 @@ Uśrednione po silnikach nie-diagnostycznych i po stratach użytecznych każdego
 {sec6_protocol_desc}
 {tie_limitation}
 {constant_slot_limitation}
-8. **Query-set construction (what the utility numbers actually measure):** The three strata are not equally hard, and two of the three are string-matching tasks. In the exact-match stratum the answer's own identifier appears verbatim in the question, making it a key lookup. In the descriptive stratum the question is a literal substring of the target document, making it near-duplicate matching. Only the relational stratum requires traversal, and its answer set is derived from the same STIX edges GraphRAG walks, so part of the graph engine's advantage there is built into the task. The relational query pool is additionally filtered to edges with at most 3 answer documents (`MAX_ANSWER_DOCS`), which removes the hardest attribution questions. Every baseline utility figure, and therefore the >= 50% viability floor and the Pareto front resting on it, should be read against these constructions rather than as general CTI retrieval quality.
+8. **Query-set construction (what the utility numbers actually measure):** The three strata are not equally hard, and two of the three are string-matching tasks. In the exact-match stratum the answer's own identifier appears verbatim in the question, making it a key lookup. In the descriptive stratum the question is a literal substring of the target document, making it near-duplicate matching. Only the relational stratum requires traversal, and its answer set is derived from the same STIX edges GraphRAG walks, so part of the graph engine's advantage there is built into the task. The relational query pool is additionally filtered to edges with at most 3 answer documents (`MAX_ANSWER_DOCS`), which removes the hardest attribution questions. Every baseline utility figure, and therefore the >= 50% viability floor and the comparisons resting on it, should be read against these constructions rather than as general CTI retrieval quality.
 9. **Corpus composition and provenance:** {corpus_composition} A third party rebuilding the corpus from the upstream sources will not obtain this exact snapshot: the MITRE bundle is fetched from a moving branch, and the cvelistV5 sample from whatever the latest release is at build time. The run manifest below records what this run actually used; without pinning those snapshots, cross-machine bit-identical replication is not claimed.
 
 {manifest_table}
