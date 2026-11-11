@@ -99,7 +99,6 @@ data/             data provenance, checksums and the corpus manifest (the data i
 | `README.md` | English | what the benchmark is, how to check and re-run it |
 | [`data/README.md`](data/README.md) | English | data sources, versions, licences, checksums, corpus manifest |
 | [`tests/README.md`](tests/README.md) | English | what each test file guards and how to run the suite |
-| [`AGENTS.md`](AGENTS.md) | Polish | methodological rules the code enforces, state of each run, working rules for the repository |
 | [`CHANGELOG.md`](CHANGELOG.md) | Polish | every change to the measurement and reporting layers |
 
 Material removed from the repository stays in the git history; its last tracked state is
@@ -126,7 +125,6 @@ reported run used.
 | Article | Repository |
 | :--- | :--- |
 | Graph-Traversal | `GraphRAG` (the `engine_name` stored in the result files) |
-| 429 tests | 333 tests. The article's code state is commit `1824048`. Since then four corpus-manifest tests were added (433) and the 100 tests of the removed LLM stage and defence filters were dropped; the tests of the retrieval measurement are the same |
 | restricted McNemar family, 43 tests (Table 9) | `scripts/mcnemar_restricted.py`, files `mcnemar_restricted.*` |
 | unrestricted family, 74 tests | Section 3.1 of `rag_poisoning_comparison_report.md` |
 
