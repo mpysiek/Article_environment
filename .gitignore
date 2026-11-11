@@ -19,10 +19,9 @@ outputs/reports/*
 outputs/reports/*/comparison_benchmark_results.json
 outputs/reports/*/generation_traces.json
 
-# Archived artefacts derived from outputs/ - same rule as above, just moved.
-# The rest of archive/ (kod, rusztowanie agentow) jest sledzone celowo.
-archive/outputs_v1/
-archive/pre_audit_backup/
+# Local leftovers of the old archive/ folder (removed from the repository in 1.3.2;
+# its last tracked state is commit bee8fe6).
+archive/
 
 # Secrets
 .env

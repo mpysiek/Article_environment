@@ -4,8 +4,9 @@ Repozytorium zawiera benchmark odporności warstwy wyszukiwania RAG na zatruwani
 (*corpus poisoning*) w domenie CTI. Ten plik opisuje **stan faktyczny** projektu i reguły
 metodologiczne, które kod egzekwuje automatycznie.
 
-Stan na 27.09.2026: przebiegiem głównym jest **v3** (`outputs/reports/v3/`). Przebieg v2 i jego
-powtórzenie kontrolne służą do porównania (Sekcja 3.1).
+Stan na 11.11.2026 (przebiegi z 27.09.2026): przebiegiem głównym jest **v3**
+(`outputs/reports/v3/`). Przebieg v2 i jego powtórzenie kontrolne służą do porównania
+(Sekcja 3.1).
 
 > [!IMPORTANT]
 > **Raporty w `outputs/reports/` (v2, v2_rerun, v3) podlegają weryfikacji jak każdy inny
@@ -396,8 +397,10 @@ pytań relacyjnych).
   wynik do `--in-dir`**, a `tie_audit.py` ma domyślnie `--in-dir outputs/reports/v2`. Nigdy nie
   kieruj ich zapisu do `outputs/reports/v2/`. Żeby przeliczyć archiwum, skopiuj je najpierw do
   osobnego folderu albo podaj `--out-dir`.
-* **Po zmianach uruchom testy:** `pytest tests/ -q -p no:cacheprovider` (429 testów,
-  ok. 1–2 min). Flaga `-p no:cacheprovider` nie tworzy `.pytest_cache`.
+* **Po zmianach uruchom testy:** `pytest tests/ -q -p no:cacheprovider` (433 testy,
+  ok. 1–2 min). Flaga `-p no:cacheprovider` nie tworzy `.pytest_cache`. Bez zbudowanego
+  korpusu `test_data_integrity.py` nie przejdzie; CI go pomija. Opis plików testów:
+  `tests/README.md`.
 
 **Przebiegi**
 
@@ -422,9 +425,14 @@ pytań relacyjnych).
 
 **Porządek w repozytorium**
 
-* `__pycache__/`, `.pytest_cache/`, `.venv/`, `data/raw/`, `data/processed/`, `data/cache/` i
-  `outputs/` są w `.gitignore`.
-* Materiał nieużywany odkładaj do `archive/` z opisem w `archive/README.md`, zamiast go usuwać.
+* `__pycache__/`, `.pytest_cache/`, `.venv/`, `data/raw/`, `data/processed/` i `data/cache/`
+  są w `.gitignore`. Z `outputs/` śledzone są tylko logi i foldery v2, v2_rerun i v3, a w nich
+  duże pliki wyłącznie jako `*.json.xz`.
+* Materiał nieużywany usuwaj i odnotuj w `CHANGELOG.md`, z którego commitu da się go odzyskać.
+  Folder `archive/` usunięto w wydaniu 1.3.2; jego ostatni stan jest w commicie `bee8fe6`.
+* Dokumentacja: `README.md`, `data/README.md` i `tests/README.md` są po angielsku (dla
+  czytelników artykułu), `AGENTS.md` i `CHANGELOG.md` po polsku. Liczby powtarzane w kilku
+  plikach (np. liczbę testów) zmieniaj we wszystkich naraz.
 
 **Raport**
 

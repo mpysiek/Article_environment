@@ -111,9 +111,9 @@ Respond ONLY with valid JSON:
         NOT the default, and deliberately so: asking one call for both decisions lets the
         model justify one with the other, correlating is_ground_truth_retained with
         is_poison_adopted -- and whether those two are independent is exactly what this
-        benchmark measures. Use archive/scripts_superseded/validate_judge_agreement.py
-        (unused by the current retrieval-only runs; see archive/README.md) to quantify the
-        divergence before switching anything to it.
+        benchmark measures. Quantify the divergence before switching anything to it; the
+        script that did so (validate_judge_agreement.py, unused by the retrieval-only runs)
+        was removed in 1.3.2 and is still in the git history at commit bee8fe6.
         """
         judge_prompt = f"""You are an impartial AI benchmark judge evaluating a Cyber Threat Intelligence response.
 

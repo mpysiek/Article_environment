@@ -86,14 +86,23 @@ src/
   defense/        sanitisers (not enabled in the reported runs)
   llm/            optional OpenRouter clients (not used by the cost-free benchmark)
 scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
-tests/            433 tests
+tests/            433 tests (see tests/README.md)
 outputs/          results of the runs reported in the article (see above) and their logs
 data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
-archive/          superseded code and the agent workflow history, kept for traceability
 ```
 
-`AGENTS.md` (Polish) documents the methodological rules the code enforces and the state of each
-run; `CHANGELOG.md` records every change to the measurement and reporting layers.
+## Documentation
+
+| File | Language | Contents |
+| :--- | :--- | :--- |
+| `README.md` | English | what the benchmark is, how to check and re-run it |
+| [`data/README.md`](data/README.md) | English | data sources, versions, licences, checksums, corpus manifest |
+| [`tests/README.md`](tests/README.md) | English | what each test file guards and how to run the suite |
+| [`AGENTS.md`](AGENTS.md) | Polish | methodological rules the code enforces, state of each run, working rules for the repository |
+| [`CHANGELOG.md`](CHANGELOG.md) | Polish | every change to the measurement and reporting layers |
+
+Material removed from the repository (the agent workflow history, pre-1.3.0 code copies and
+superseded scripts) stays in the git history; its last tracked state is commit `bee8fe6`.
 
 ## Scope
 

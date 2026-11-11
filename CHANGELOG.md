@@ -5,6 +5,50 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 
 ---
 
+## [1.3.2] - 2026-11-11
+
+### Summary
+Wydanie publikacyjne: **pomiar, dane i wyniki bez zmian**. Repozytorium dostaje pliki
+potrzebne do publikacji, traci materiał niezwiązany z badaniem, a dokumentacja podaje te same
+liczby we wszystkich plikach.
+
+### Publikacja (commity `dd7340e`, `1824048`, `bee8fe6`)
+- `README.md` z mapą przebiegów i instrukcją sprawdzenia liczb, licencja MIT, `CITATION.cff`,
+  `.zenodo.json`, `.env.example`.
+- `data/README.md`: wersje i licencje źródeł, sposób przypięcia wersji; `data/SHA256SUMS`.
+- `requirements-lock.txt`: dokładne wersje pakietów przebiegów v2_rerun i v3.
+- GitHub Actions: testy (bez `test_data_integrity.py`) i bramka audytu na przebiegu v3.
+- `data/corpus_manifest_v2_24000.csv.xz`, `scripts/corpus_manifest.py` i
+  `tests/test_corpus_manifest.py` (4 testy). Razem **433** testy.
+
+### Usunięte
+Cały materiał jest w historii gita; ostatni stan przed usunięciem to commit `bee8fe6`.
+- `archive/` (118 plików): rusztowanie procesu pracy agentów (`agents_workflow/`, 96 plików),
+  kopia kodu sprzed 1.3.0 (`pre_v3_backup_2026-09-26/`, duplikat historii gita), zastąpione
+  skrypty uruchomieniowe, nieużywane moduły RunPod i scite oraz nieaktualny raport statusu
+  testów. Nic z tego nie było importowane przez `src/`, `scripts/` ani `tests/`.
+- `src/corpus/large_cti_generator.py`: syntetyczny generator korpusu bez żadnego odwołania
+  w kodzie i testach.
+- `TEST_INFRA.md`: opisywał plan prac (role agentów, kamienie milowe M1–M5, 225 testów) zamiast
+  stanu zestawu testów. Zastąpiony przez `tests/README.md`.
+
+### Dokumentacja
+- `tests/README.md`: jak uruchomić testy, co pilnuje każdy plik, ile ma testów.
+- `README.md`: tabela dokumentów z ich językiem (README, `data/README.md` i `tests/README.md`
+  po angielsku, `AGENTS.md` i ten plik po polsku); usunięty wpis o `archive/`.
+- `AGENTS.md`: data stanu, liczba testów 433 (było 429), uwaga o `test_data_integrity.py`,
+  dokładny opis tego, co z `outputs/` jest śledzone. Reguła „materiał nieużywany odkładaj do
+  `archive/`" zastąpiona regułą „usuwaj i odnotuj w CHANGELOG commit, z którego da się go
+  odzyskać".
+- `.gitignore`: `archive/` ignorowany w całości (lokalne pozostałości, np. `outputs_v1/`).
+- Docstring w `src/evaluation/llm_judge.py` odsyłał do usuniętego skryptu w `archive/`.
+- `CITATION.cff`: wersja 1.3.2.
+
+Starsze wpisy poniżej opisują stan z chwili wydania; odwołania do `archive/` i `TEST_INFRA.md`
+zostają w nich bez zmian.
+
+---
+
 ## [1.3.1-docs] - 2026-09-27
 
 ### Summary
