@@ -9,7 +9,8 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 
 ### Summary
 Wydanie publikacyjne: **pomiar, dane i wyniki bez zmian**. Repozytorium dostaje pliki
-potrzebne do publikacji, traci materiał niezwiązany z badaniem, a dokumentacja podaje te same
+potrzebne do publikacji i traci materiał, którego żaden raportowany przebieg nie używał:
+archiwum, martwy kod, filtry obronne i cały etap generacji LLM. Dokumentacja podaje te same
 liczby we wszystkich plikach.
 
 ### Publikacja (commity `dd7340e`, `1824048`, `bee8fe6`)
@@ -31,17 +32,58 @@ Cały materiał jest w historii gita; ostatni stan przed usunięciem to commit `
   w kodzie i testach.
 - `TEST_INFRA.md`: opisywał plan prac (role agentów, kamienie milowe M1–M5, 225 testów) zamiast
   stanu zestawu testów. Zastąpiony przez `tests/README.md`.
+- `src/defense/` (filtry entropii, spójności grafu i rozbieżności semantycznej): żaden
+  przebieg ich nie włączał; brak obrony jest założeniem badania.
+- **Etap generacji LLM** (benchmark go nie uruchamiał, `llm_stage_ran = False`):
+  - `src/llm/` (klienci OpenRouter, w tym Batch API, i generator RAG) oraz
+    `src/evaluation/llm_judge.py`;
+  - z `src/evaluation/stages.py` przekazywanie etapów A/B/C przez pliki JSONL (istniało tylko
+    po to, żeby sędzia mógł iść przez Batch API); zostały `execute_isolated_retrieval`,
+    `execute_shared_retrieval` i `deep_retrieve`;
+  - z `Evaluator` metoda `evaluate_engine_with_llm` i liczenie werdyktów sędziego; zostaje
+    `evaluate_engine`;
+  - z `scripts/run_comparison_benchmark.py` flaga `--llm` i gałąź generacji; `--cost-free`
+    zostaje bez działania, żeby stare polecenia nadal działały (potok już jej nie podaje);
+  - z reportera gałęzie `llm_stage_ran = True` (kolumny generacyjne, tytuły, opis sędziego);
+  - z `src/config.py` konfiguracja OpenRouter, Batch API i `CROSS_PROVIDER_TIERS`;
+  - `httpx` z `requirements.txt` i `.env.example`.
+- **Pola generacyjne zostają w schemacie** (`generation_asr`, `ground_truth_retention`,
+  `conflict_detection_rate`, `llm_stage_ran`, `judge_coverage_rate`,
+  `avg_generation_latency_ms` oraz pola śladów). Zapisane wyniki v2, v2_rerun i v3 je mają,
+  a `regenerate_report.py` wczytuje je przez `EngineBenchmarkResult(**d)`. Mają stałe
+  wartości, takie same jak dotąd w każdym przebiegu.
+- **Testy: 433 → 333.** Usunięte pliki `test_batch_client.py` (15), `test_judge_batch.py`
+  (11), `test_stages.py` (12) i `test_defenses.py` (4) oraz 58 testów w innych plikach, które
+  sprawdzały sędziego, zapis etapów A/B/C albo `evaluate_engine_with_llm` (48 w
+  `test_e2e_remediation.py`). Dwa testy przepisano na `evaluate_engine`.
+
+### Weryfikacja usunięcia etapu generacji
+- `regenerate_report.py` na zapisanych wynikach v2, v2_rerun i v3: raporty identyczne bajt w
+  bajt ze starym kodem (commit `8d95bdf`). Raport v3 zgadza się też z raportem w repozytorium
+  (różnią się tylko końce wierszy CRLF/LF).
+- Przebieg syntetyczny starym i nowym kodem (izolowany z `--topological --log-ties --query-set
+  v3`, B = 1, 3, oraz współdzielony, B = 1, 2): `comparison_benchmark_results.json` i
+  `generation_traces.json` identyczne poza latencjami; raporty różnią się tylko tabelą latencji
+  i znacznikiem czasu.
+- Bramka audytu v3: 9 PASS, 0 FAIL, 1 INFO. Testy: 324 passed (bez `test_data_integrity.py`).
+- Przy okazji: raporty v2 i v2_rerun w repozytorium różnią się od odtworzonych z ich danych,
+  także starym kodem, więc to stan sprzed tej zmiany.
+  - v2: 3 wiersze Sekcji 6. Archiwum pisał starszy reporter (dawny wzór progu mostów, brak
+    uwagi, że zakresy remisowe liczono tylko z pozycji 1–2).
+  - v2_rerun: 1 wiersz opisu metodologii. Raport z przebiegu wymienia „ablację echa zapytania
+    (`query_echo=False`)", a `regenerate_report.py` tego zdania nie odtwarza, bo ustawia
+    `query_echo=True`, gdy w wynikach jest ramię echo. Z tego powodu brakuje go też w raporcie
+    v3, który powstał przez `regenerate_report.py`.
 
 ### Dokumentacja
 - `tests/README.md`: jak uruchomić testy, co pilnuje każdy plik, ile ma testów.
 - `README.md`: tabela dokumentów z ich językiem (README, `data/README.md` i `tests/README.md`
   po angielsku, `AGENTS.md` i ten plik po polsku); usunięty wpis o `archive/`.
-- `AGENTS.md`: data stanu, liczba testów 433 (było 429), uwaga o `test_data_integrity.py`,
+- `AGENTS.md`: data stanu, liczba testów 333 (było 429), uwaga o `test_data_integrity.py`,
   dokładny opis tego, co z `outputs/` jest śledzone. Reguła „materiał nieużywany odkładaj do
   `archive/`" zastąpiona regułą „usuwaj i odnotuj w CHANGELOG commit, z którego da się go
   odzyskać".
 - `.gitignore`: `archive/` ignorowany w całości (lokalne pozostałości, np. `outputs_v1/`).
-- Docstring w `src/evaluation/llm_judge.py` odsyłał do usuniętego skryptu w `archive/`.
 - `CITATION.cff`: wersja 1.3.2.
 
 Starsze wpisy poniżej opisują stan z chwili wydania; odwołania do `archive/` i `TEST_INFRA.md`

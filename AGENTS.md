@@ -19,7 +19,9 @@ Stan na 11.11.2026 (przebiegi z 27.09.2026): przebiegiem głównym jest **v3**
 
 ## 1. Co ten benchmark mierzy (i czego nie)
 
-* **Wyłącznie warstwa wyszukiwania.** Etap LLM nie jest uruchamiany (`llm_stage_ran = False`).
+* **Wyłącznie warstwa wyszukiwania.** Etapu LLM nie ma (`llm_stage_ran = False`); jego kod
+  (generator, sędzia, Batch API) usunięto w wydaniu 1.3.2, a pola generacyjne zostały w schemacie
+  wyników tylko po to, żeby dało się wczytać zapisane przebiegi.
   To świadoma granica zakresu — badanie ma być deterministyczne i bezkosztowe. Nie raportuj
   braku generacji jako defektu implementacji, ale **nie nazywaj też metryk „ASR"**: w
   literaturze (PoisonedRAG, Zou i in.) ASR jest wielkością generacyjną. Tu obowiązują nazwy
@@ -397,8 +399,8 @@ pytań relacyjnych).
   wynik do `--in-dir`**, a `tie_audit.py` ma domyślnie `--in-dir outputs/reports/v2`. Nigdy nie
   kieruj ich zapisu do `outputs/reports/v2/`. Żeby przeliczyć archiwum, skopiuj je najpierw do
   osobnego folderu albo podaj `--out-dir`.
-* **Po zmianach uruchom testy:** `pytest tests/ -q -p no:cacheprovider` (433 testy,
-  ok. 1–2 min). Flaga `-p no:cacheprovider` nie tworzy `.pytest_cache`. Bez zbudowanego
+* **Po zmianach uruchom testy:** `pytest tests/ -q -p no:cacheprovider` (333 testy,
+  ok. pół minuty). Flaga `-p no:cacheprovider` nie tworzy `.pytest_cache`. Bez zbudowanego
   korpusu `test_data_integrity.py` nie przejdzie; CI go pomija. Opis plików testów:
   `tests/README.md`.
 

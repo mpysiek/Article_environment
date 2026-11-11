@@ -400,13 +400,9 @@ def compute_pareto_ranking(
         if attack_res:
             avg_asr = float(np.mean([_extract_asr(r) for r in attack_res]))
             avg_top1 = float(np.mean([r.retrieval_asr_top1 for r in attack_res]))
-            avg_gen_asr = float(np.mean([r.generation_asr for r in attack_res]))
-            avg_gt_ret = float(np.mean([r.ground_truth_retention for r in attack_res]))
         else:
             avg_asr = float(np.mean([_extract_asr(r) for r in eng_results])) if eng_results else 0.0
             avg_top1 = float(np.mean([r.retrieval_asr_top1 for r in eng_results])) if eng_results else 0.0
-            avg_gen_asr = float(np.mean([r.generation_asr for r in eng_results])) if eng_results else 0.0
-            avg_gt_ret = float(np.mean([r.ground_truth_retention for r in eng_results])) if eng_results else 0.0
 
         # 2a. Same robustness numbers, restricted to the strata where this engine clears the
         # utility floor and split by attack arm. Falls back to the unrestricted values when
@@ -462,8 +458,6 @@ def compute_pareto_ranking(
             "avg_targeted_asr_unrestricted": avg_asr,
             "restricted_to_strata": sorted(viable_sts) if can_restrict else [],
             "excluded_strata": sorted(eng_strata - viable_sts) if can_restrict else [],
-            "avg_gen_asr": avg_gen_asr,
-            "avg_gt_ret": avg_gt_ret,
             "is_viable": is_viable,
             "viability": viability,
             "is_pareto_optimal": False,
@@ -519,11 +513,7 @@ class BenchmarkReporter:
     @staticmethod
     def print_terminal_results(results: List[EngineBenchmarkResult]):
         total_q = results[0].total_queries if results else 0
-        llm_stage_ran = any(getattr(r, "llm_stage_ran", False) for r in results)
-        if not llm_stage_ran:
-            llm_stage_ran = any(r.generation_asr > 0 or r.ground_truth_retention > 0 for r in results)
-
-        table_title = "🛡️ CTI RAG Poisoning Benchmark (Retrieval Robustness Evaluation)" if not llm_stage_ran else "🛡️ CTI RAG Poisoning Benchmark Evaluation"
+        table_title = "🛡️ CTI RAG Poisoning Benchmark (Retrieval Robustness Evaluation)"
         table = Table(title=table_title)
         table.add_column("RAG Engine", style="cyan", justify="left")
         table.add_column("Attack Vector", style="magenta", justify="left")
@@ -532,10 +522,6 @@ class BenchmarkReporter:
         table.add_column("ASR_cond", justify="center")
         table.add_column("Retr Top-5 ASR", justify="center")
         table.add_column("Clean Recall@5", style="green", justify="center")
-        if llm_stage_ran:
-            table.add_column("LLM Gen ASR", style="bold red", justify="center")
-            table.add_column("GT Retained", style="bold green", justify="center")
-            table.add_column("Conflict Det.", justify="center")
 
         for r in results:
             cond_traces = [t for t in r.traces if getattr(t, "clean_ground_truth_hit", False)]
@@ -558,15 +544,6 @@ class BenchmarkReporter:
                 r_top5_str,
                 f"{r.clean_recall_top5:.1%}",
             ]
-            if llm_stage_ran:
-                gen_asr_str = f"[bold red]{r.generation_asr:.1%}[/bold red]" if r.generation_asr > 0.3 else f"{r.generation_asr:.1%}"
-                gt_ret_str = f"[bold green]{r.ground_truth_retention:.1%}[/bold green]" if r.ground_truth_retention > 0.5 else f"{r.ground_truth_retention:.1%}"
-                row_items.extend([
-                    gen_asr_str,
-                    gt_ret_str,
-                    f"{r.conflict_detection_rate:.1%}"
-                ])
-
             table.add_row(*row_items)
         console.print(table)
 
@@ -624,11 +601,7 @@ class BenchmarkReporter:
         run_manifest: Optional[Dict[str, Any]] = None
     ) -> str:
         isolated = is_isolated_run(results, isolated_targets)
-        llm_stage_ran = any(getattr(r, "llm_stage_ran", False) for r in results)
-        if not llm_stage_ran:
-            llm_stage_ran = any(r.generation_asr > 0 or r.ground_truth_retention > 0 for r in results)
-        has_llm_metrics = llm_stage_ran
-        
+
         # A rank-1 score tie that straddles the poison/clean boundary is decided by document-id
         # ordering, not by the scoring function, so poison@1 is an interval for any engine that
         # produces such ties. The column only appears when the run actually contains them.
@@ -640,19 +613,11 @@ class BenchmarkReporter:
         clean_stratum_recall = compute_stratum_recall(results)
 
         tie_header = ["poison@1 (zakres remisów)"] if has_ties else []
-        if llm_stage_ran:
-            headers = [
-                "RAG Engine", "Threat / Attack Vector", "Queries",
-                "poison@1 (95% CI)", *tie_header, "poison@1 cond (95% CI)", "poison@5",
-                "GT displaced@5", "Clean Recall@5", "Clean MRR",
-                "LLM Gen ASR (95% CI)", "GT Retention (95% CI)", "Conflict Rate"
-            ]
-        else:
-            headers = [
-                "RAG Engine", "Threat / Attack Vector", "Queries",
-                "poison@1 (95% CI)", *tie_header, "poison@1 cond (95% CI)", "poison@5",
-                "GT displaced@5", "Clean Recall@5", "Clean MRR"
-            ]
+        headers = [
+            "RAG Engine", "Threat / Attack Vector", "Queries",
+            "poison@1 (95% CI)", *tie_header, "poison@1 cond (95% CI)", "poison@5",
+            "GT displaced@5", "Clean Recall@5", "Clean MRR"
+        ]
 
         rows = []
         for r in results:
@@ -668,15 +633,7 @@ class BenchmarkReporter:
                 cond_str = f"{r.retrieval_asr_cond:.1%} [{cond_ci[0]:.1%}-{cond_ci[1]:.1%}] (n={n_cond})"
             else:
                 cond_str = "N/A"
-            
-            if has_llm_metrics:
-                gen_ci = wilson_interval(int(round(r.generation_asr * n)), n)
-                gt_ci = wilson_interval(int(round(r.ground_truth_retention * n)), n)
-                gen_str = f"{r.generation_asr:.1%} [{gen_ci[0]:.1%}-{gen_ci[1]:.1%}]"
-                gt_str = f"{r.ground_truth_retention:.1%} [{gt_ci[0]:.1%}-{gt_ci[1]:.1%}]"
-            else:
-                gen_str = "N/A"
-                gt_str = "N/A"
+
 
             # Ground truth displacement: the share of queries the clean baseline answered
             # that this attack pushed out of the window entirely. poison@1 alone cannot say
@@ -706,12 +663,6 @@ class BenchmarkReporter:
                 f"{r.clean_recall_top5:.1%}",
                 f"{r.clean_mrr:.2f}",
             ]
-            if llm_stage_ran:
-                row.extend([
-                    gen_str,
-                    gt_str,
-                    f"{r.conflict_detection_rate:.1%}"
-                ])
             rows.append(row)
         md_table = tabulate(rows, headers=headers, tablefmt="github")
 
@@ -939,36 +890,20 @@ class BenchmarkReporter:
                     STRATUM_LABELS.get(st, st) for st in item.get("excluded_strata", [])
                 ) or "-",
             ]
-            if llm_stage_ran:
-                row.extend([
-                    f"{item.get('avg_gen_asr', 0.0):.1%}",
-                    f"{item.get('avg_gt_ret', 0.0):.1%}"
-                ])
             ranking_rows.append(row)
 
         # Column names state the quantity that is actually computed. `poison@1` is the
         # any-poison rank-1 rate (identical to the targeted rate under the isolated protocol,
         # but they are not the same quantity and the header must not claim otherwise), and the
         # @5 column is the targeted top-5 rate that forms the Pareto axis.
-        if llm_stage_ran:
-            ranking_headers = [
-                "Rank", "Engine", "Status Pareto (Recall >= 50%)",
-                "Clean Recall@5 (Higher=Better)",
-                "Mean poison@1, reference arm (Lower=Better)",
-                "Mean targeted poison@5, reference arm (Lower=Better)",
-                "poison@1, echo arm (upper bound)",
-                "Strata excluded (below floor)",
-                "Avg LLM Gen ASR", "Avg GT Retention"
-            ]
-        else:
-            ranking_headers = [
-                "Rank", "Engine", "Status Pareto (Recall >= 50%)",
-                "Clean Recall@5 Bazowy (Wyższy=Lepszy)",
-                "Średni poison@1, ramię referencyjne (Niższy=Lepszy)",
-                "Średni targeted poison@5, ramię referencyjne (Niższy=Lepszy)",
-                "poison@1, ramię echo (górne ograniczenie)",
-                "Strata wyłączone (poniżej progu)"
-            ]
+        ranking_headers = [
+            "Rank", "Engine", "Status Pareto (Recall >= 50%)",
+            "Clean Recall@5 Bazowy (Wyższy=Lepszy)",
+            "Średni poison@1, ramię referencyjne (Niższy=Lepszy)",
+            "Średni targeted poison@5, ramię referencyjne (Niższy=Lepszy)",
+            "poison@1, ramię echo (górne ograniczenie)",
+            "Strata wyłączone (poniżej progu)"
+        ]
         ranking_table = tabulate(ranking_rows, headers=ranking_headers, tablefmt="github")
 
         # Attack Vector Efficacy. Averaged over non-diagnostic engines and, within each
@@ -982,10 +917,7 @@ class BenchmarkReporter:
                 continue
             viable_sts = viable_strata_for(clean_stratum_recall, r.engine_name, MIN_UTILITY_THRESHOLD)
             rates = restricted_poison_rates(r, viable_sts) if viable_sts else None
-            if has_llm_metrics:
-                val = r.generation_asr
-                disp = None
-            elif rates is not None:
+            if rates is not None:
                 val = rates["poison_at_1"]
                 disp = rates["displaced"] if rates["n_cond"] else None
             else:
@@ -1020,27 +952,23 @@ class BenchmarkReporter:
             reverse=True
         )
 
-        if has_llm_metrics:
-            attack_headers = ["Attack Vector", "Avg LLM Generation ASR", "Silniki (n)"]
-            attack_rows = [[att.upper(), f"{asr:.1%}", n] for att, asr, _d, n in attack_rankings]
-        else:
-            attack_headers = [
-                "Attack Vector",
-                "Avg GT displaced@5 (strata użyteczne)",
-                "Avg poison@1 (strata użyteczne)",
-                "Silniki (n)",
-                "Reżim",
+        attack_headers = [
+            "Attack Vector",
+            "Avg GT displaced@5 (strata użyteczne)",
+            "Avg poison@1 (strata użyteczne)",
+            "Silniki (n)",
+            "Reżim",
+        ]
+        attack_rows = [
+            [
+                att.upper(),
+                f"{d:.1%}" if d is not None else "-",
+                f"{asr:.1%}",
+                n,
+                f"B>=k: arytmetyka okna" if _is_saturating(att) else "sub-saturacja",
             ]
-            attack_rows = [
-                [
-                    att.upper(),
-                    f"{d:.1%}" if d is not None else "-",
-                    f"{asr:.1%}",
-                    n,
-                    f"B>=k: arytmetyka okna" if _is_saturating(att) else "sub-saturacja",
-                ]
-                for att, asr, d, n in attack_rankings
-            ]
+            for att, asr, d, n in attack_rankings
+        ]
         attack_table = tabulate(attack_rows, headers=attack_headers, tablefmt="github")
 
         # McNemar's Test Pairwise Comparisons.
@@ -1124,23 +1052,13 @@ class BenchmarkReporter:
                         aligned = [(ta, traces_b_map[ta.query_id]) for ta in eng1.traces if ta.query_id in traces_b_map]
 
                         if att == "clean_baseline":
-                            if has_llm_metrics:
-                                outcomes_a = [ta.is_ground_truth_retained for ta, tb in aligned]
-                                outcomes_b = [tb.is_ground_truth_retained for ta, tb in aligned]
-                                metric_name = "GT Retention"
-                            else:
-                                outcomes_a = [getattr(ta, "clean_ground_truth_hit", False) for ta, tb in aligned]
-                                outcomes_b = [getattr(tb, "clean_ground_truth_hit", False) for ta, tb in aligned]
-                                metric_name = "GT Recall@5 Hit"
+                            outcomes_a = [getattr(ta, "clean_ground_truth_hit", False) for ta, tb in aligned]
+                            outcomes_b = [getattr(tb, "clean_ground_truth_hit", False) for ta, tb in aligned]
+                            metric_name = "GT Recall@5 Hit"
                         else:
-                            if has_llm_metrics:
-                                outcomes_a = [ta.is_poison_adopted for ta, tb in aligned]
-                                outcomes_b = [tb.is_poison_adopted for ta, tb in aligned]
-                                metric_name = "Generation ASR"
-                            else:
-                                outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
-                                outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
-                                metric_name = "Retr ASR@1"
+                            outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
+                            outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
+                            metric_name = "Retr ASR@1"
 
                         _record_test(att, eng1.engine_name, eng2.engine_name,
                                      metric_name, outcomes_a, outcomes_b)
@@ -1160,14 +1078,9 @@ class BenchmarkReporter:
                     traces_b_map = {t.query_id: t for t in eng2.traces}
                     aligned = [(ta, traces_b_map[ta.query_id]) for ta in eng1.traces if ta.query_id in traces_b_map]
 
-                    if has_llm_metrics:
-                        outcomes_a = [ta.is_poison_adopted for ta, tb in aligned]
-                        outcomes_b = [tb.is_poison_adopted for ta, tb in aligned]
-                        metric_name = "Generation ASR"
-                    else:
-                        outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
-                        outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
-                        metric_name = "Retr ASR@1"
+                    outcomes_a = [ta.has_poison_in_top1 for ta, tb in aligned]
+                    outcomes_b = [tb.has_poison_in_top1 for ta, tb in aligned]
+                    metric_name = "Retr ASR@1"
                     test_res = mcnemar_test_detailed(outcomes_a, outcomes_b)
                     raw_tests.append({
                         "condition": f"CROSS_SPARSE vs CROSS_DENSE ({metric_name})",
@@ -1228,8 +1141,6 @@ class BenchmarkReporter:
             mcnemar_table = "*Brak pasujących par do testu McNemara.*"
 
         total_queries = results[0].total_queries if results else 0
-        gen_model = config.GENERATOR_MODEL
-        judge_model = config.JUDGE_MODEL
 
         corpus_count_clause = f"{corpus_size:,} autentycznych dokumentów: " if corpus_size is not None else ""
         corpus_desc = (
@@ -1239,9 +1150,7 @@ class BenchmarkReporter:
         )
 
         exec_mode_desc = (
-            f"Wszystkie odpowiedzi generowane są przez model **`{gen_model}`**, a ewaluacja prowadzona jest przez niezależnego sędziego **`{judge_model}`** przez OpenRouter API."
-            if has_llm_metrics
-            else "**Tryb Bezkosztowy (Cost-Free Local Benchmark / 100% Local Inference):** Wszystkie 4 silniki RAG (Sparse BM25, Dense FAISS, Hybrid z Rerankerem, GraphRAG) oraz symulacje ataków adwersalnych ewaluowane są w 100% lokalnie na CPU/RAM z wykorzystaniem precyzyjnego cache wektorowego. Koszt wykonania eksperymentu wynosi dokładnie **$0.00** (brak zewnętrznych wywołań płatnych API tokenów LLM)."
+            "**Tryb Bezkosztowy (Cost-Free Local Benchmark / 100% Local Inference):** Wszystkie 4 silniki RAG (Sparse BM25, Dense FAISS, Hybrid z Rerankerem, GraphRAG) oraz symulacje ataków adwersalnych ewaluowane są w 100% lokalnie na CPU/RAM z wykorzystaniem precyzyjnego cache wektorowego. Koszt wykonania eksperymentu wynosi dokładnie **$0.00** (brak zewnętrznych wywołań płatnych API tokenów LLM)."
         )
 
         corpus_validity = (
@@ -1741,12 +1650,8 @@ class BenchmarkReporter:
             ablations.append("izolacji warstwy grafowej (`PureTopologicalPoisonAttacker`)")
         ablation_clause = f", a także {', '.join(ablations)}" if ablations else ""
 
-        if llm_stage_ran:
-            doc_title = "# 🔬 Raport z Badania Odporności Architektur RAG na Ataki Corpus Poisoning (Real CTI STIX 2.1)"
-            sec2_title = "## 2. Zbiorcza Macierz Wyników (Retrieval & LLM Generation Benchmark)"
-        else:
-            doc_title = "# 🔬 Raport z Badania Odporności Warstwy Wyszukiwania RAG na Ataki Corpus Poisoning (Retrieval Robustness - Real CTI STIX 2.1)"
-            sec2_title = "## 2. Zbiorcza Macierz Wyników (Retrieval Robustness Benchmark)"
+        doc_title = "# 🔬 Raport z Badania Odporności Warstwy Wyszukiwania RAG na Ataki Corpus Poisoning (Retrieval Robustness - Real CTI STIX 2.1)"
+        sec2_title = "## 2. Zbiorcza Macierz Wyników (Retrieval Robustness Benchmark)"
 
         _nl = chr(10)
         scope_banner = _nl.join([

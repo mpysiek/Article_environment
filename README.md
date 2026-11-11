@@ -37,7 +37,7 @@ python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\
 pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 # exact versions of the reference run: requirements-lock.txt
 
-pytest tests -q -p no:cacheprovider                     # 433 tests; test_data_integrity.py needs data/
+pytest tests -q -p no:cacheprovider                     # 333 tests; test_data_integrity.py needs data/
 ```
 
 ### Check the published numbers without re-running anything
@@ -81,12 +81,10 @@ src/
   corpus/         corpus assembly from authentic CTI sources, query sets v2 and v3
   engines/        the four retrievers
   attacks/        poisoning vectors and payload construction
-  evaluation/     metrics, tie-aware evaluation stages, (optional) LLM judge
+  evaluation/     metrics, tie bounds, isolated and shared retrieval protocol
   visualization/  report generation and aggregation rules
-  defense/        sanitisers (not enabled in the reported runs)
-  llm/            optional OpenRouter clients (not used by the cost-free benchmark)
 scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
-tests/            433 tests (see tests/README.md)
+tests/            333 tests (see tests/README.md)
 outputs/          results of the runs reported in the article (see above) and their logs
 data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
 ```
@@ -101,8 +99,10 @@ data/             data provenance, checksums and the corpus manifest (the data i
 | [`AGENTS.md`](AGENTS.md) | Polish | methodological rules the code enforces, state of each run, working rules for the repository |
 | [`CHANGELOG.md`](CHANGELOG.md) | Polish | every change to the measurement and reporting layers |
 
-Material removed from the repository (the agent workflow history, pre-1.3.0 code copies and
-superseded scripts) stays in the git history; its last tracked state is commit `bee8fe6`.
+Material removed from the repository stays in the git history; its last tracked state is
+commit `bee8fe6`. That covers the agent workflow history, pre-1.3.0 code copies, superseded
+scripts, the input sanitisers and the optional LLM generation and judging stage, which no
+reported run used.
 
 ## Scope
 

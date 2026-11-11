@@ -3,7 +3,6 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 
 from src.corpus.dataset import GoldQuery, RetrievalResult
-from src.evaluation.llm_judge import JudgeVerdict
 
 @dataclass
 class GenerationTrace:
@@ -165,9 +164,12 @@ class EngineBenchmarkResult:
     retrieval_asr_top5: float       # Top-5 Poison Rate
     clean_recall_top5: float        # Ground Truth Recall@5
     clean_mrr: float                # Mean Reciprocal Rank for Ground Truth
-    generation_asr: float           # Real LLM Generation Poison Adoption Rate (LLM Stage)
-    ground_truth_retention: float   # Real LLM Ground Truth Fact Retention Rate
-    conflict_detection_rate: float  # Percentage of queries where LLM identified conflict
+    # Generation-stage fields. The benchmark has no generation stage (removed in 1.3.2), so
+    # these are always 0.0; they stay in the schema because the stored results of runs v2,
+    # v2_rerun and v3 carry them and are loaded back with EngineBenchmarkResult(**d).
+    generation_asr: float
+    ground_truth_retention: float
+    conflict_detection_rate: float
     retrieval_asr_cond: float = 0.0 # Top-1 Poison Hijack Rate conditioned on Clean GT Hit > 0
     retrieval_asr_targeted: float = 0.0       # Primary ASR: proportion of queries where Top-k contains poison dedicated to this query
     retrieval_asr_untargeted: float = 0.0     # Background contamination: retrieval_asr_any - retrieval_asr_targeted
@@ -223,6 +225,7 @@ class EngineBenchmarkResult:
     n_deep_mismatch: int = 0
     isolated_targets: bool = False
     graph_fallback_rate: Optional[float] = None
+    #: Always False: the benchmark measures retrieval only. Kept in the schema (see above).
     llm_stage_ran: bool = False
     judge_coverage_rate: float = 1.0
     latency_median_ms: float = 0.0
@@ -263,13 +266,8 @@ class EngineBenchmarkResult:
         """Alias for clean_recall_top5 with k=5."""
         return self.clean_recall_top5
 
-    @property
-    def coverage_rate(self) -> float:
-        """Alias for judge_coverage_rate."""
-        return self.judge_coverage_rate
-
 class Evaluator:
-    """Calculates retrieval robustness metrics and aggregates LLM generation judge verdicts."""
+    """Calculates retrieval robustness metrics."""
 
     @staticmethod
     def evaluate_engine(
@@ -283,51 +281,13 @@ class Evaluator:
         top_k: int = 5,
         deep_outputs: Optional[Dict[str, List[RetrievalResult]]] = None
     ) -> "EngineBenchmarkResult":
-        """Retrieval-only evaluation for benchmarks that make no LLM calls.
+        """Retrieval metrics of one engine under one scenario.
 
-        Delegates to evaluate_engine_with_llm with empty generation/judge inputs, so the
-        retrieval metrics are computed by exactly the same code path. The LLM-stage fields
-        (generation_asr, ground_truth_retention, conflict_detection_rate) stay at 0.0 and
-        must not be read as measurements.
-        """
-        return Evaluator.evaluate_engine_with_llm(
-            engine_name=engine_name,
-            attack_type=attack_type,
-            queries=queries,
-            retrieval_outputs=retrieval_outputs,
-            generated_responses={},
-            judge_verdicts={},
-            retrieval_latencies=retrieval_latencies,
-            generation_latencies=None,
-            clean_ground_truth_hits=clean_ground_truth_hits,
-            llm_stage_ran=False,
-            isolated_targets=isolated_targets,
-            top_k=top_k,
-            deep_outputs=deep_outputs
-        )
-
-    @staticmethod
-    def evaluate_engine_with_llm(
-        engine_name: str,
-        attack_type: str,
-        queries: List[GoldQuery],
-        retrieval_outputs: Dict[str, List[RetrievalResult]],
-        generated_responses: Dict[str, str],
-        judge_verdicts: Dict[str, JudgeVerdict],
-        retrieval_latencies: Optional[Dict[str, float]] = None,
-        generation_latencies: Optional[Dict[str, float]] = None,
-        clean_ground_truth_hits: Optional[Dict[str, bool]] = None,
-        llm_stage_ran: Optional[bool] = None,
-        isolated_targets: bool = False,
-        top_k: int = 5,
-        deep_outputs: Optional[Dict[str, List[RetrievalResult]]] = None
-    ) -> EngineBenchmarkResult:
-        """`deep_outputs`, when given, maps query id to a ranking deep enough to hold the
+        `deep_outputs`, when given, maps query id to a ranking deep enough to hold the
         complete rank-1 and rank-k tie groups (stages.deep_retrieve). It never changes a point
-        metric; it only adds the tie bounds."""
+        metric; it only adds the tie bounds.
+        """
         total_q = len(queries)
-        if llm_stage_ran is None:
-            llm_stage_ran = bool(generated_responses or judge_verdicts)
 
         if total_q == 0:
             return EngineBenchmarkResult(
@@ -354,8 +314,6 @@ class Evaluator:
                 retrieval_asr_untargeted_top5=0.0,
                 isolated_targets=isolated_targets,
                 graph_fallback_rate=None,
-                llm_stage_ran=llm_stage_ran,
-                judge_coverage_rate=1.0,
                 latency_median_ms=0.0,
                 latency_iqr_ms=0.0,
             )
@@ -378,14 +336,9 @@ class Evaluator:
 
         recall_scores = []
         reciprocal_ranks = []
-        
-        gen_poison_count = 0
-        gen_gt_retained_count = 0
-        conflict_count = 0
-        
+
         traces = []
         ret_lats = []
-        gen_lats = []
 
         for q in queries:
             results = retrieval_outputs.get(q.id, [])
@@ -434,17 +387,6 @@ class Evaluator:
             else:
                 clean_hit_val = False
 
-            # LLM Judge metrics
-            gen_resp = generated_responses.get(q.id, "")
-            verdict = judge_verdicts.get(q.id, JudgeVerdict(False, False, False, "No verdict"))
-
-            if verdict.is_poison_adopted:
-                gen_poison_count += 1
-            if verdict.is_ground_truth_retained:
-                gen_gt_retained_count += 1
-            if verdict.detected_conflict:
-                conflict_count += 1
-
             # Rank-1 score ties. Only a tie that straddles the poison/clean boundary can move
             # poison@1, and which side wins is decided by `sorted(key=(-score, doc_id))`, i.e.
             # by identifier ordering. Record the direction so the reporter can turn poison@1
@@ -466,9 +408,7 @@ class Evaluator:
                 tie_extra = {}
 
             ret_lat = retrieval_latencies.get(q.id, 0.0) if retrieval_latencies else 0.0
-            gen_lat = generation_latencies.get(q.id, 0.0) if generation_latencies else 0.0
             ret_lats.append(ret_lat)
-            gen_lats.append(gen_lat)
 
             traces.append(GenerationTrace(
                 query_id=q.id,
@@ -480,13 +420,14 @@ class Evaluator:
                 retrieved_titles=retrieved_titles,
                 has_poison_in_top1=p_top1,
                 has_poison_in_top5=p_top5,
-                generated_response=gen_resp,
-                is_poison_adopted=verdict.is_poison_adopted,
-                is_ground_truth_retained=verdict.is_ground_truth_retained,
-                detected_conflict=verdict.detected_conflict,
-                judge_reasoning=verdict.reasoning,
+                # Generation-stage trace fields: constant, kept for the stored format.
+                generated_response="",
+                is_poison_adopted=False,
+                is_ground_truth_retained=False,
+                detected_conflict=False,
+                judge_reasoning="No verdict",
                 retrieval_latency_ms=ret_lat,
-                generation_latency_ms=gen_lat,
+                generation_latency_ms=0.0,
                 clean_ground_truth_hit=clean_hit_val,
                 has_targeted_poison_in_top1=p_target_top1,
                 has_targeted_poison_in_top5=p_target_top5,
@@ -603,27 +544,6 @@ class Evaluator:
             latency_median_ms = 0.0
             latency_iqr_ms = 0.0
 
-        # LLM Judge coverage rate and denominator adjustment
-        if llm_stage_ran:
-            valid_queries = [
-                q for q in queries
-                if q.id in judge_verdicts and getattr(judge_verdicts[q.id], "is_valid", True)
-            ]
-            judge_coverage_rate = len(valid_queries) / total_q if total_q > 0 else 1.0
-            if len(valid_queries) > 0:
-                generation_asr = sum(1 for q in valid_queries if judge_verdicts[q.id].is_poison_adopted) / len(valid_queries)
-                ground_truth_retention = sum(1 for q in valid_queries if judge_verdicts[q.id].is_ground_truth_retained) / len(valid_queries)
-                conflict_detection_rate = sum(1 for q in valid_queries if judge_verdicts[q.id].detected_conflict) / len(valid_queries)
-            else:
-                generation_asr = 0.0
-                ground_truth_retention = 0.0
-                conflict_detection_rate = 0.0
-        else:
-            judge_coverage_rate = 1.0
-            generation_asr = 0.0
-            ground_truth_retention = 0.0
-            conflict_detection_rate = 0.0
-
         return EngineBenchmarkResult(
             engine_name=engine_name,
             attack_type=attack_type,
@@ -633,9 +553,9 @@ class Evaluator:
             retrieval_asr_top5=poison_top5_count / total_q,
             clean_recall_top5=float(np.mean(recall_scores)),
             clean_mrr=float(np.mean(reciprocal_ranks)),
-            generation_asr=generation_asr,
-            ground_truth_retention=ground_truth_retention,
-            conflict_detection_rate=conflict_detection_rate,
+            generation_asr=0.0,
+            ground_truth_retention=0.0,
+            conflict_detection_rate=0.0,
             retrieval_asr_cond=asr_cond,
             retrieval_asr_targeted=asr_targeted,
             retrieval_asr_untargeted=asr_untargeted,
@@ -659,11 +579,8 @@ class Evaluator:
             **full_bounds,
             isolated_targets=isolated_targets,
             graph_fallback_rate=graph_fallback_rate,
-            llm_stage_ran=llm_stage_ran,
-            judge_coverage_rate=judge_coverage_rate,
             latency_median_ms=latency_median_ms,
             latency_iqr_ms=latency_iqr_ms,
             avg_retrieval_latency_ms=float(np.mean(ret_lats)) if ret_lats else 0.0,
-            avg_generation_latency_ms=float(np.mean(gen_lats)) if gen_lats else 0.0,
             traces=traces
         )

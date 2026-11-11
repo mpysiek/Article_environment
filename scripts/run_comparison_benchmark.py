@@ -5,8 +5,8 @@ CTI RAG Corpus Poisoning Benchmark: Comparing 4 RAG Architectures
 on authentic CTI STIX 2.1 knowledge base (24,000 authentic documents)
 under adversarial corpus poisoning attacks.
 
-Can be run 100% cost-free locally (Retrieval Robustness Evaluation, $0.00)
-or with OpenRouter LLM generation & judge.
+Measures the retrieval layer only: deterministic, local, no API calls. There is no
+generation stage (removed in 1.3.2; see CHANGELOG.md).
 """
 import sys
 import json
@@ -32,9 +32,6 @@ from src.corpus.real_cti_loader import RealCTILoader
 from src.corpus.real_query_loader import build_real_gold_queries, QUERY_SETS
 from src.engines.retrievers import BM25Retriever, DenseFAISSRetriever, HybridRerankRetriever, GraphRAGRetriever, BaseRetriever
 from src.attacks.poisoning import CorpusPoisonManager
-from src.llm.openrouter_client import OpenRouterClient
-from src.llm.rag_generator import RAGGenerator
-from src.evaluation.llm_judge import LLMJudge, JudgeVerdict
 from src.evaluation.metrics import Evaluator, EngineBenchmarkResult
 from src.evaluation.stages import execute_isolated_retrieval, deep_retrieve
 from src.visualization.reporter import BenchmarkReporter
@@ -120,7 +117,6 @@ def run_benchmark_matrix(
     corpus_mode: str = "real",
     num_cves: int = 24000,
     num_queries: int = 150,
-    cost_free: bool = True,
     query_echo: bool = False,
     include_topological: bool = False,
     isolated_targets: bool = False,
@@ -138,7 +134,6 @@ def run_benchmark_matrix(
     print("[*] CTI RAG CORPUS POISONING BENCHMARK: 4 ARCHITECTURES COMPARISON")
     print("=" * 80)
     print(f"[*] Corpus Mode:      {corpus_mode.upper()} ({num_cves} documents target)")
-    print(f"[*] Evaluation Mode:  {'COST-FREE LOCAL RETRIEVAL ($0.00)' if cost_free else 'OPENROUTER LLM'}")
     print(f"[*] Protocol:         {'ISOLATED PER-QUERY (Rec 3)' if isolated_targets else 'SHARED CORPUS'}")
     print(f"[*] Number of Queries:{num_queries}")
     print(f"[*] Attack Budgets:   {budgets}")
@@ -179,14 +174,6 @@ def run_benchmark_matrix(
         "Hybrid-Reranker": hybrid,
         "GraphRAG": graph
     }
-
-    generator = None
-    judge = None
-    if not cost_free:
-        print("   [+] Initializing OpenRouter Client for LLM Generation and Judge...")
-        client = OpenRouterClient()
-        generator = RAGGenerator(client=client, model=config.GENERATOR_MODEL)
-        judge = LLMJudge(client=client, model=config.JUDGE_MODEL)
 
     poison_mgr = CorpusPoisonManager(query_echo=query_echo, bridge_count=bridge_count)
     # EntitySwapPoisonAttacker draws its decoys from the real corpus, so it must see it
@@ -231,53 +218,16 @@ def run_benchmark_matrix(
                 if deep_outputs is not None:
                     deep_outputs[q.id] = deep_retrieve(engine, q.query_text, top_k=config.TOP_K)
 
-        generated_responses = {}
-        judge_verdicts = {}
-        generation_latencies = {}
-
-        # Step B & C: Optional LLM Generation & Judge (when not cost-free)
-        if not cost_free and generator and judge:
-            for q in queries:
-                results = retrieval_outputs[q.id]
-                t_gen0 = time.time()
-                resp = generator.generate_response(q.query_text, results)
-                gen_latency_ms = (time.time() - t_gen0) * 1000.0
-                generated_responses[q.id] = resp
-                generation_latencies[q.id] = gen_latency_ms
-
-                verdict = judge.evaluate_response(
-                    query_text=q.query_text,
-                    ground_truth_answer=q.ground_truth_answer,
-                    target_poison_assertion=q.target_poison_assertion,
-                    generated_response=resp
-                )
-                judge_verdicts[q.id] = verdict
-
-        if cost_free:
-            res = Evaluator.evaluate_engine(
-                engine_name=engine_name,
-                attack_type=attack_type,
-                queries=queries,
-                retrieval_outputs=retrieval_outputs,
-                retrieval_latencies=retrieval_latencies,
-                clean_ground_truth_hits=clean_hits,
-                isolated_targets=isolated_targets,
-                deep_outputs=deep_outputs
-            )
-        else:
-            res = Evaluator.evaluate_engine_with_llm(
-                engine_name=engine_name,
-                attack_type=attack_type,
-                queries=queries,
-                retrieval_outputs=retrieval_outputs,
-                generated_responses=generated_responses,
-                judge_verdicts=judge_verdicts,
-                retrieval_latencies=retrieval_latencies,
-                generation_latencies=generation_latencies,
-                clean_ground_truth_hits=clean_hits,
-                isolated_targets=isolated_targets,
-                deep_outputs=deep_outputs
-            )
+        res = Evaluator.evaluate_engine(
+            engine_name=engine_name,
+            attack_type=attack_type,
+            queries=queries,
+            retrieval_outputs=retrieval_outputs,
+            retrieval_latencies=retrieval_latencies,
+            clean_ground_truth_hits=clean_hits,
+            isolated_targets=isolated_targets,
+            deep_outputs=deep_outputs
+        )
         res.isolated_targets = isolated_targets
         return res
 
@@ -407,7 +357,6 @@ def run_benchmark_matrix(
 
     total_elapsed = time.time() - start_total_time
     print(f"\nTotal Execution Time: {total_elapsed:.2f}s ({total_elapsed/60:.1f} min)")
-    print(f"Total API Cost: $0.00" if cost_free else f"OpenRouter API execution complete")
 
     # Methodology gate. The audit checks restate the findings of the methodological review as
     # assertions over the stored results; running them here is what stops a report shipping
@@ -438,9 +387,8 @@ def main():
     parser.add_argument("--queries", type=int, default=150,
                         help="Number of gold benchmark queries (default: 150 = 3 strata x 50)")
     parser.add_argument("--cost-free", action="store_true", default=None,
-                        help="Force 100%% cost-free local evaluation ($0.00 API cost)")
-    parser.add_argument("--llm", action="store_true",
-                        help="Enable OpenRouter LLM generation and judge")
+                        help="No effect; kept so that older commands still run. The benchmark is "
+                             "always a 100%% cost-free local retrieval evaluation ($0.00 API cost).")
     parser.add_argument("--query-echo", action="store_true", default=False,
                         help="Enable verbatim query echo in attack payloads (upper-bound stress test; default: False)")
     parser.add_argument("--topological", action="store_true",
@@ -470,22 +418,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine cost-free mode:
-    # If explicitly passed --cost-free -> True
-    # If explicitly passed --llm -> False
-    # Otherwise -> True if not config.OPENROUTER_API_KEY else False
-    if args.cost_free is not None:
-        cost_free = True
-    elif args.llm:
-        cost_free = False
-    else:
-        cost_free = not bool(config.OPENROUTER_API_KEY)
-
     run_benchmark_matrix(
         corpus_mode=args.corpus,
         num_cves=args.num_cves,
         num_queries=args.queries,
-        cost_free=cost_free,
         query_echo=args.query_echo,
         include_topological=args.topological,
         isolated_targets=args.isolated_targets,

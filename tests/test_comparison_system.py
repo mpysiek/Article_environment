@@ -2,9 +2,7 @@ import pytest
 from src.corpus.dataset import build_cti_knowledge_base, build_gold_benchmark_queries, CTIDocument, GoldQuery, RetrievalResult
 from src.engines.retrievers import BM25Retriever, DenseFAISSRetriever, HybridRerankRetriever, GraphRAGRetriever
 from src.attacks.poisoning import CorpusPoisonManager
-from src.evaluation.llm_judge import JudgeVerdict, LLMJudge
 from src.evaluation.metrics import Evaluator
-from src.llm.rag_generator import RAGGenerator
 
 def test_engines_indexing_and_retrieval():
     clean_docs = build_cti_knowledge_base()
@@ -49,37 +47,18 @@ def test_evaluator_metrics_computation():
             )
         ]
     }
-    dummy_gen = {queries[0].id: "Clean factual answer"}
-    dummy_judge = {queries[0].id: JudgeVerdict(is_poison_adopted=False, is_ground_truth_retained=True, detected_conflict=False, reasoning="Pass")}
-
-    res = Evaluator.evaluate_engine_with_llm(
+    res = Evaluator.evaluate_engine(
         engine_name="TestEngine",
         attack_type="clean",
         queries=[queries[0]],
         retrieval_outputs=dummy_outputs,
-        generated_responses=dummy_gen,
-        judge_verdicts=dummy_judge
     )
-    assert res.generation_asr == 0.0
-    assert res.ground_truth_retention == 1.0
     assert res.retrieval_asr_top1 == 0.0
-
-def test_rag_generator_prompt_formatting():
-    generator = RAGGenerator()
-    dummy_results = [
-        RetrievalResult(
-            doc_id="CVE-2021-44228",
-            score=0.9,
-            rank=1,
-            title="Log4j2 RCE",
-            text="Apache Log4j2 JNDI vulnerability.",
-            is_poisoned=False,
-            doc_type="cve"
-        )
-    ]
-    context = generator.format_context(dummy_results)
-    assert "CVE-2021-44228" in context
-    assert "Log4j2 RCE" in context
+    assert res.clean_recall_top5 == 1.0 / len(queries[0].ground_truth_doc_ids)
+    assert res.clean_mrr == 1.0
+    # The generation stage was removed; its stored-format fields stay constant.
+    assert res.llm_stage_ran is False
+    assert res.generation_asr == 0.0
 
 def test_graphrag_entity_extraction_word_boundaries_and_stopwords():
     graph = GraphRAGRetriever()

@@ -4,15 +4,18 @@ Covers Requirements R1 through R5 across all 20 inventoried remediation features
   R1: Targeting-Aware Evaluation & Context Contamination Separation (F-R1-01 .. F-R1-04)
   R2: GraphRAG Entity Extraction & Namespace Separation (F-R2-01 .. F-R2-05)
   R3: Experimental Factor Differentiation: Budget & Separability (F-R3-01 .. F-R3-02)
-  R4: LLM Judge Robustness & Reliability (F-R4-01 .. F-R4-04)
+  R4: Assertion alignment of the attacks and the llm_stage_ran flag (F-R4-02, F-R4-03)
   R5: Metrological Reporting Rigor, Pareto & Statistics (F-R5-01 .. F-R5-05)
 
 Test Methodology (4 Tiers):
-  Tier 1: Feature Coverage (>=5 test cases per feature across all 20 features = 100 tests)
-  Tier 2: Boundary & Corner Cases (>=5 test cases per feature across all 20 features = 100 tests)
-  Tier 3: Cross-Feature Combinations (15 pairwise interaction tests)
-  Tier 4: Real-World Application Scenarios (10 real-world CTI scenarios)
-Total: 225 test cases.
+  Tier 1: Feature Coverage
+  Tier 2: Boundary & Corner Cases
+  Tier 3: Cross-Feature Combinations
+  Tier 4: Real-World Application Scenarios
+
+Release 1.3.2 removed the generation stage (LLM generator, judge, Batch API and the stage
+A/B/C file handoff) and with it the tests of F-R1-03, F-R4-01 and F-R4-04; they are in the
+git history at bee8fe6.
 """
 
 import copy
@@ -52,8 +55,6 @@ from src.attacks.poisoning import (
     PureTopologicalPoisonAttacker,
     BlackBoxTopicAttacker,
 )
-from src.evaluation import stages
-from src.evaluation.llm_judge import JudgeVerdict, LLMJudge
 from src.evaluation.metrics import EngineBenchmarkResult, Evaluator, GenerationTrace
 from src.visualization import reporter
 
@@ -334,66 +335,6 @@ class TestTier1_R1_TargetingAwareEvaluation:
                 "F-R1-02: HybridRerankRetriever must populate poison_target_query"
             )
 
-    # --- F-R1-03: Lossless serialization of targeting fields in stages.py ---
-    def test_t1_f_r1_03_retrieval_result_to_dict_has_targeting(self):
-        r = _create_synthetic_retrieval_result(
-            doc_id="P1", is_poisoned=True, poison_target_query="Q100", poison_type="sparse"
-        )
-        d = stages.retrieval_result_to_dict(r)
-        assert "poison_target_query" in d, "F-R1-03: retrieval_result_to_dict must serialize poison_target_query"
-        assert d["poison_target_query"] == "Q100"
-        assert "poison_type" in d, "F-R1-03: retrieval_result_to_dict must serialize poison_type"
-        assert d["poison_type"] == "sparse"
-
-    def test_t1_f_r1_03_retrieval_result_from_dict_restores_targeting(self):
-        d = {
-            "doc_id": "P1", "score": 0.9, "rank": 1, "title": "P", "text": "txt",
-            "is_poisoned": True, "doc_type": "cve", "poison_target_query": "Q100",
-            "poison_type": "sparse", "metadata": {}
-        }
-        r = stages.retrieval_result_from_dict(d)
-        assert getattr(r, "poison_target_query", None) == "Q100", (
-            "F-R1-03: retrieval_result_from_dict must restore poison_target_query"
-        )
-        assert getattr(r, "poison_type", None) == "sparse", (
-            "F-R1-03: retrieval_result_from_dict must restore poison_type"
-        )
-
-    def test_t1_f_r1_03_serialization_roundtrip_identity(self):
-        r_orig = _create_synthetic_retrieval_result(
-            doc_id="P2", is_poisoned=True, poison_target_query="Q200", poison_type="dense"
-        )
-        d = stages.retrieval_result_to_dict(r_orig)
-        r_restored = stages.retrieval_result_from_dict(d)
-        assert getattr(r_restored, "poison_target_query", None) == getattr(r_orig, "poison_target_query", None)
-        assert getattr(r_restored, "poison_type", None) == getattr(r_orig, "poison_type", None)
-
-    def test_t1_f_r1_03_make_stage_a_record_includes_serialized_targeting(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result(
-            doc_id="P1", is_poisoned=True, poison_target_query=q.id, poison_type="hybrid"
-        )
-        rec = stages.make_stage_a_record("Scen1", "BM25", "hybrid", q, [r], "resp", 1.0, 2.0)
-        assert "retrieved" in rec
-        assert len(rec["retrieved"]) == 1
-        assert rec["retrieved"][0].get("poison_target_query") == q.id, (
-            "F-R1-03: make_stage_a_record must include poison_target_query in retrieved records"
-        )
-
-    def test_t1_f_r1_03_stage_a_jsonl_file_roundtrip_preserves_targeting(self, tmp_path, sample_gold_queries):
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result(
-            doc_id="P1", is_poisoned=True, poison_target_query=q.id, poison_type="sparse"
-        )
-        rec = stages.make_stage_a_record("Scen1", "BM25", "sparse", q, [r], "resp", 1.0, 2.0)
-        target_file = tmp_path / "stage_a_test.jsonl"
-        stages.write_stage_a(target_file, {"run_id": "test_r1"}, [rec])
-        _, read_records = stages.read_stage_a(target_file)
-        retrieved_item = read_records[0]["retrieved"][0]
-        assert retrieved_item.get("poison_target_query") == q.id, (
-            "F-R1-03: Stage A file roundtrip must preserve poison_target_query"
-        )
-
     # --- F-R1-04: retrieval_asr_targeted primary metric separate from untargeted & any ---
     def test_t1_f_r1_04_engine_benchmark_result_schema_has_all_asr_fields(self):
         fields = {f.name: f for f in dataclasses.fields(EngineBenchmarkResult)}
@@ -437,18 +378,6 @@ class TestTier1_R1_TargetingAwareEvaluation:
             assert res.retrieval_asr_targeted == 0.0
             assert res.retrieval_asr_untargeted == 0.0
             assert res.retrieval_asr_any == 0.0
-
-    def test_t1_f_r1_04_evaluator_with_llm_retains_asr_metrics(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        outputs = {
-            q1.id: [_create_synthetic_retrieval_result("P1", is_poisoned=True, poison_target_query=q1.id)]
-        }
-        gen = {q1.id: "answer"}
-        judge = {q1.id: JudgeVerdict(False, True, False, "ok")}
-        res = Evaluator.evaluate_engine_with_llm("Engine1", "sparse", [q1], outputs, gen, judge)
-        if hasattr(res, "retrieval_asr_targeted"):
-            assert res.retrieval_asr_targeted == 1.0
-
 
 class TestTier1_R2_GraphRAGNamespaceAndExtraction:
     """Tier 1 tests for Requirement 2: GraphRAG Dual-Namespace & Entity Extraction (F-R2-01 to F-R2-05)."""
@@ -770,69 +699,8 @@ class TestTier1_R3_BudgetDiversityAndAblation:
         )
 
 
-class TestTier1_R4_LLMJudgeRobustness:
-    """Tier 1 tests for Requirement 4: LLM Judge Robustness & Assay Alignment (F-R4-01 to F-R4-04)."""
-
-    # --- F-R4-01: LLM Judge unparseable response isolation & coverage_rate ---
-    def test_t1_f_r4_01_judge_verdict_has_is_valid_field(self):
-        fields = {f.name: f for f in dataclasses.fields(JudgeVerdict)}
-        assert "is_valid" in fields, "F-R4-01: JudgeVerdict must have 'is_valid' boolean field"
-
-    def test_t1_f_r4_01_unparseable_gt_output_marked_invalid(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        corrupted_raw = "I am an AI and I refuse to evaluate this request."
-        parsed = judge._parse_gt_output(corrupted_raw, "model response")
-        # In remediated judge, corrupted output must not be valid
-        if "is_valid" in parsed:
-            assert parsed["is_valid"] is False, "F-R4-01: Corrupted judge output must set is_valid=False"
-        # Must not silently claim ground truth was retained
-        assert parsed.get("is_ground_truth_retained") is not True or parsed.get("is_valid") is False
-
-    def test_t1_f_r4_01_unparseable_poison_output_marked_invalid(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        corrupted_raw = "<html>502 Bad Gateway</html>"
-        parsed = judge._parse_poison_output(corrupted_raw, "model response")
-        if "is_valid" in parsed:
-            assert parsed["is_valid"] is False
-
-    def test_t1_f_r4_01_evaluator_computes_judge_coverage_rate(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        q2 = sample_gold_queries[1]
-        outputs = {
-            q1.id: [_create_synthetic_retrieval_result("D1")],
-            q2.id: [_create_synthetic_retrieval_result("D2")]
-        }
-        gen = {q1.id: "resp1", q2.id: "resp2"}
-        # One valid verdict, one invalid verdict
-        verdict_valid = JudgeVerdict(is_poison_adopted=True, is_ground_truth_retained=False, detected_conflict=False, reasoning="ok")
-        verdict_invalid = JudgeVerdict(is_poison_adopted=False, is_ground_truth_retained=False, detected_conflict=False, reasoning="parse error")
-        if hasattr(verdict_invalid, "is_valid"):
-            verdict_invalid.is_valid = False
-            
-        verdicts = {q1.id: verdict_valid, q2.id: verdict_invalid}
-        res = Evaluator.evaluate_engine_with_llm("Eng", "sparse", [q1, q2], outputs, gen, verdicts)
-        assert hasattr(res, "judge_coverage_rate") or hasattr(res, "coverage_rate"), (
-            "F-R4-01: EngineBenchmarkResult must report judge_coverage_rate"
-        )
-        cov = getattr(res, "judge_coverage_rate", getattr(res, "coverage_rate", 1.0))
-        if hasattr(verdict_invalid, "is_valid"):
-            assert cov == 0.5, "1 out of 2 verdicts valid = 50% coverage"
-
-    def test_t1_f_r4_01_unparseable_verdict_excluded_from_metric_denominator(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        q2 = sample_gold_queries[1]
-        outputs = {
-            q1.id: [_create_synthetic_retrieval_result("D1")],
-            q2.id: [_create_synthetic_retrieval_result("D2")]
-        }
-        gen = {q1.id: "r1", q2.id: "r2"}
-        v1 = JudgeVerdict(is_poison_adopted=True, is_ground_truth_retained=False, detected_conflict=False, reasoning="ok")
-        v2 = JudgeVerdict(is_poison_adopted=False, is_ground_truth_retained=False, detected_conflict=False, reasoning="parse error")
-        if hasattr(v2, "is_valid"):
-            v2.is_valid = False
-            res = Evaluator.evaluate_engine_with_llm("Eng", "sparse", [q1, q2], outputs, gen, {q1.id: v1, q2.id: v2})
-            # Generation ASR on 1 valid query where poison was adopted must be 1.0 (not 0.5)
-            assert res.generation_asr == 1.0, "Unparseable verdict must not be counted in denominator as unpoisoned"
+class TestTier1_R4_AssertionAlignmentAndStageFlag:
+    """Tier 1 tests for Requirement 4: assertion alignment (F-R4-02) and the llm_stage_ran flag (F-R4-03)."""
 
     # --- F-R4-02: Assertion alignment for BlackBox & Topological attacks ---
     def test_t1_f_r4_02_blackbox_attacker_exposes_get_injected_assertion(self, sample_gold_queries):
@@ -864,19 +732,6 @@ class TestTier1_R4_LLMJudgeRobustness:
             "BlackBox injected assertion must reflect topic poison, not white-box assertion"
         )
 
-    def test_t1_f_r4_02_make_stage_a_record_accepts_injected_assertion(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result("D1")
-        # In remediated stages.py, make_stage_a_record accepts injected_assertion parameter
-        varnames = stages.make_stage_a_record.__code__.co_varnames
-        assert "injected_assertion" in varnames or "target_assertion" in varnames or True
-        rec = stages.make_stage_a_record(
-            "Scen1", "BM25", "blackbox", q, [r], "resp", 1.0, 2.0,
-            injected_assertion="Injected topic claim"
-        ) if "injected_assertion" in varnames else stages.make_stage_a_record("Scen1", "BM25", "blackbox", q, [r], "resp", 1.0, 2.0)
-        if "injected_assertion" in varnames:
-            assert rec["target_poison_assertion"] == "Injected topic claim"
-
     def test_t1_f_r4_02_standard_attacks_retain_whitebox_assertion(self, sample_gold_queries):
         mgr = CorpusPoisonManager()
         q = sample_gold_queries[0]
@@ -888,16 +743,6 @@ class TestTier1_R4_LLMJudgeRobustness:
         fields = {f.name: f for f in dataclasses.fields(EngineBenchmarkResult)}
         assert "llm_stage_ran" in fields, "F-R4-03: EngineBenchmarkResult must declare 'llm_stage_ran: bool'"
 
-    def test_t1_f_r4_03_evaluate_engine_with_llm_sets_flag_true(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        outputs = {q1.id: [_create_synthetic_retrieval_result("D1")]}
-        gen = {q1.id: "answer"}
-        judge = {q1.id: JudgeVerdict(False, True, False, "ok")}
-        res = Evaluator.evaluate_engine_with_llm("Eng", "clean", [q1], outputs, gen, judge)
-        assert getattr(res, "llm_stage_ran", False) is True, (
-            "F-R4-03: evaluate_engine_with_llm must set llm_stage_ran = True"
-        )
-
     def test_t1_f_r4_03_evaluate_engine_retrieval_only_sets_flag_false(self, sample_gold_queries):
         q1 = sample_gold_queries[0]
         outputs = {q1.id: [_create_synthetic_retrieval_result("D1")]}
@@ -905,87 +750,6 @@ class TestTier1_R4_LLMJudgeRobustness:
         assert getattr(res, "llm_stage_ran", True) is False, (
             "F-R4-03: evaluate_engine retrieval-only must set llm_stage_ran = False"
         )
-
-    def test_t1_f_r4_03_true_zero_asr_with_llm_stage_ran_retains_metric(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        outputs = {q1.id: [_create_synthetic_retrieval_result("D1")]}
-        gen = {q1.id: "answer"}
-        # Resilient model: 0% ASR
-        judge = {q1.id: JudgeVerdict(is_poison_adopted=False, is_ground_truth_retained=True, detected_conflict=False, reasoning="clean")}
-        res = Evaluator.evaluate_engine_with_llm("Eng", "sparse", [q1], outputs, gen, judge)
-        assert res.generation_asr == 0.0
-        assert getattr(res, "llm_stage_ran", False) is True
-
-    def test_t1_f_r4_03_reporter_checks_llm_stage_ran_instead_of_asr_gt_zero(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        r = EngineBenchmarkResult(
-            engine_name="Eng", attack_type="sparse", total_queries=1,
-            retrieval_asr_top1=0.0, retrieval_asr_top3=0.0, retrieval_asr_top5=0.0,
-            clean_recall_top5=1.0, clean_mrr=1.0, generation_asr=0.0,
-            ground_truth_retention=1.0, conflict_detection_rate=0.0
-        )
-        if hasattr(r, "llm_stage_ran"):
-            r.llm_stage_ran = True
-            # Reporter should acknowledge LLM evaluation took place
-            # Verification: has_llm_metrics evaluates True on r
-            has_metrics = getattr(r, "llm_stage_ran", False)
-            assert has_metrics is True
-
-    # --- F-R4-04: Deduplication scoping / opt-out parameter ---
-    def test_t1_f_r4_04_build_batch_requests_has_deduplicate_param(self):
-        varnames = LLMJudge.build_batch_requests.__code__.co_varnames
-        assert "deduplicate" in varnames, "F-R4-04: build_batch_requests must accept 'deduplicate: bool = True'"
-
-    def test_t1_f_r4_04_deduplicate_false_generates_one_request_per_item(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [
-            {"scenario": "Scen1", "query_id": "Q1", "query_text": "Q", "ground_truth_answer": "GT", "target_poison_assertion": "TP", "generated_response": "Same Response"},
-            {"scenario": "Scen2", "query_id": "Q1", "query_text": "Q", "ground_truth_answer": "GT", "target_poison_assertion": "TP", "generated_response": "Same Response"},
-        ]
-        if "deduplicate" in LLMJudge.build_batch_requests.__code__.co_varnames:
-            reqs, manifest = judge.build_batch_requests(items, "gt", deduplicate=False)
-            assert len(reqs) == 2, "With deduplicate=False, exactly 2 requests must be generated"
-
-    def test_t1_f_r4_04_deduplicate_false_assigns_unique_custom_ids(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [
-            {"scenario": "ScenA", "query_id": "Q1", "query_text": "Q", "ground_truth_answer": "GT", "target_poison_assertion": "TP", "generated_response": "Resp"},
-            {"scenario": "ScenB", "query_id": "Q1", "query_text": "Q", "ground_truth_answer": "GT", "target_poison_assertion": "TP", "generated_response": "Resp"},
-        ]
-        if "deduplicate" in LLMJudge.build_batch_requests.__code__.co_varnames:
-            reqs, manifest = judge.build_batch_requests(items, "gt", deduplicate=False)
-            cids = [r["custom_id"] for r in reqs]
-            assert len(set(cids)) == 2, "Custom IDs must be unique per request"
-
-    def test_t1_f_r4_04_deduplicate_true_scoped_to_query_id(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        # Two different queries sharing identical response text should NOT collapse across queries
-        items = [
-            {"scenario": "Scen1", "query_id": "Q1", "query_text": "Q1 text", "ground_truth_answer": "GT1", "target_poison_assertion": "TP1", "generated_response": "I don't know"},
-            {"scenario": "Scen1", "query_id": "Q2", "query_text": "Q2 text", "ground_truth_answer": "GT2", "target_poison_assertion": "TP2", "generated_response": "I don't know"},
-        ]
-        reqs, manifest = judge.build_batch_requests(items, "gt")
-        assert len(reqs) == 2, "Deduplication must never collapse across distinct queries"
-
-    def test_t1_f_r4_04_verdicts_from_batch_handles_un_deduplicated_manifest(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        manifest = [
-            {"custom_id": "cid_1", "scenario": "Scen1", "query_id": "Q1"},
-            {"custom_id": "cid_2", "scenario": "Scen2", "query_id": "Q2"},
-        ]
-        gt_raw = {
-            "cid_1": '{"is_ground_truth_retained": true, "reasoning": "ok"}',
-            "cid_2": '{"is_ground_truth_retained": false, "reasoning": "no"}'
-        }
-        poison_raw = {
-            "cid_1": '{"is_poison_adopted": false, "detected_conflict": false, "reasoning": "ok"}',
-            "cid_2": '{"is_poison_adopted": true, "detected_conflict": false, "reasoning": "yes"}'
-        }
-        verdicts, missing = judge.verdicts_from_batch(gt_raw, poison_raw, manifest, {"Q1": "r1", "Q2": "r2"})
-        assert len(missing) == 0
-        assert ("Scen1", "Q1") in verdicts
-        assert ("Scen2", "Q2") in verdicts
-
 
 class TestTier1_R5_MetrologicalReportingAndStats:
     """Tier 1 tests for Requirement 5: Reporting Rigor, Pareto Analysis & Statistics (F-R5-01 to F-R5-05)."""
@@ -1244,41 +1008,6 @@ class TestTier2_BoundaryAndCornerCases:
         r1 = bm25.retrieve("target one", top_k=1)
         assert getattr(r1[0], "poison_target_query", None) == "Q1"
 
-    # --- Boundaries for F-R1-03 ---
-    def test_t2_f_r1_03_from_dict_missing_targeting_keys_defaults_cleanly(self):
-        legacy_dict = {
-            "doc_id": "D1", "score": 0.5, "rank": 1, "title": "T",
-            "text": "X", "is_poisoned": False, "doc_type": "cve"
-        }
-        r = stages.retrieval_result_from_dict(legacy_dict)
-        assert getattr(r, "poison_target_query", None) is None
-        assert getattr(r, "poison_type", None) is None
-
-    def test_t2_f_r1_03_unicode_chars_in_targeting_roundtrip(self):
-        r = _create_synthetic_retrieval_result(
-            "P_UNI", is_poisoned=True, poison_target_query="Q_Zażółć_Gęślą_Jaźń", poison_type="sparse"
-        )
-        d = stages.retrieval_result_to_dict(r)
-        r2 = stages.retrieval_result_from_dict(d)
-        assert getattr(r2, "poison_target_query", None) == "Q_Zażółć_Gęślą_Jaźń"
-
-    def test_t2_f_r1_03_empty_retrieved_list_serialization(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        rec = stages.make_stage_a_record("Scen", "BM25", "clean", q, [], "resp", 1.0, 1.0)
-        assert rec["retrieved"] == []
-
-    def test_t2_f_r1_03_corrupted_jsonl_line_handling(self, tmp_path):
-        p = tmp_path / "bad.jsonl"
-        p.write_text('{"_header": {"version": 1}}\n{INVALID JSON LINE\n', encoding="utf-8")
-        with pytest.raises(Exception):
-            stages.read_stage_a(p)
-
-    def test_t2_f_r1_03_zero_scores_and_ranks_serialization(self):
-        r = _create_synthetic_retrieval_result("D0", score=0.0, rank=0)
-        d = stages.retrieval_result_to_dict(r)
-        assert d["score"] == 0.0
-        assert d["rank"] == 0
-
     # --- Boundaries for F-R1-04 ---
     def test_t2_f_r1_04_zero_queries_boundary(self):
         res = Evaluator.evaluate_engine("Eng", "clean", [], {})
@@ -1450,13 +1179,6 @@ class TestTier2_BoundaryAndCornerCases:
         assert isinstance(res[0], RetrievalResult)
         assert res[0].rank == 1
 
-    def test_t2_f_r2_04_fallback_metadata_jsonl_roundtrip(self):
-        r = _create_synthetic_retrieval_result("D1", metadata={"fallback_used": True})
-        d = stages.retrieval_result_to_dict(r)
-        assert d["metadata"]["fallback_used"] is True
-        r2 = stages.retrieval_result_from_dict(d)
-        assert r2.metadata.get("fallback_used") is True
-
     def test_t2_f_r2_04_fallback_rate_on_empty_queries(self):
         res = Evaluator.evaluate_engine("GraphRAG", "clean", [], {})
         if hasattr(res, "graph_fallback_rate"):
@@ -1564,52 +1286,6 @@ class TestTier2_BoundaryAndCornerCases:
         # Echo document should rank #1 on exact query text match
         assert r[0].doc_id == doc_echo.id
 
-    # --- Boundaries for F-R4-01 ---
-    def test_t2_f_r4_01_empty_string_judge_output(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        p = judge._parse_poison_output("", "resp")
-        if "is_valid" in p:
-            assert p["is_valid"] is False
-
-    def test_t2_f_r4_01_markdown_fenced_json(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        raw = "```json\n{\"is_poison_adopted\": true, \"detected_conflict\": false, \"reasoning\": \"ok\"}\n```"
-        p = judge._parse_poison_output(raw, "resp")
-        assert p["is_poison_adopted"] is True
-
-    def test_t2_f_r4_01_partial_invalid_verdicts_coverage_rate(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        q2 = sample_gold_queries[1]
-        v1 = JudgeVerdict(True, False, False, "ok")
-        v2 = JudgeVerdict(False, False, False, "bad", is_valid=False) if hasattr(JudgeVerdict, "is_valid") else JudgeVerdict(False, False, False, "bad")
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng", "sparse", [q1, q2],
-            {q1.id: [_create_synthetic_retrieval_result("D")], q2.id: [_create_synthetic_retrieval_result("D")]},
-            {q1.id: "r1", q2.id: "r2"}, {q1.id: v1, q2.id: v2}
-        )
-        if hasattr(v2, "is_valid"):
-            cov = getattr(res, "judge_coverage_rate", getattr(res, "coverage_rate", 1.0))
-            assert cov == 0.5
-
-    def test_t2_f_r4_01_100_percent_invalid_verdicts_boundary(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        v1 = JudgeVerdict(False, False, False, "bad", is_valid=False) if hasattr(JudgeVerdict, "is_valid") else JudgeVerdict(False, False, False, "bad")
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng", "sparse", [q1],
-            {q1.id: [_create_synthetic_retrieval_result("D")]},
-            {q1.id: "r1"}, {q1.id: v1}
-        )
-        assert res.generation_asr == 0.0
-
-    def test_t2_f_r4_01_missing_verdicts_in_batch_response(self, sample_gold_queries):
-        q1 = sample_gold_queries[0]
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng", "sparse", [q1],
-            {q1.id: [_create_synthetic_retrieval_result("D")]},
-            {q1.id: "r1"}, {}
-        )
-        assert res.total_queries == 1
-
     # --- Boundaries for F-R4-02 ---
     def test_t2_f_r4_02_blackbox_cve_lookup_assertion_matches(self, sample_gold_queries):
         q = sample_gold_queries[0]
@@ -1629,89 +1305,11 @@ class TestTier2_BoundaryAndCornerCases:
         p = attacker.generate_poison(q)
         assert p.is_poisoned is True
 
-    def test_t2_f_r4_02_stage_a_record_assertion_survives_jsonl(self, tmp_path, sample_gold_queries):
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result("D1")
-        rec = stages.make_stage_a_record("Scen", "BM25", "blackbox", q, [r], "resp", 1.0, 1.0)
-        p = tmp_path / "a.jsonl"
-        stages.write_stage_a(p, {}, [rec])
-        _, recs = stages.read_stage_a(p)
-        assert recs[0]["target_poison_assertion"] == rec["target_poison_assertion"]
-
-    def test_t2_f_r4_02_injected_assertion_none_falls_back_to_query(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        rec = stages.make_stage_a_record("Scen", "BM25", "sparse", q, [], "resp", 1.0, 1.0)
-        assert rec["target_poison_assertion"] == q.target_poison_assertion
-
     # --- Boundaries for F-R4-03 ---
-    def test_t2_f_r4_03_perfect_defense_0_percent_asr(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        v = JudgeVerdict(False, True, False, "clean")
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng", "sparse", [q], {q.id: [_create_synthetic_retrieval_result("D")]},
-            {q.id: "r"}, {q.id: v}
-        )
-        assert res.generation_asr == 0.0
-
     def test_t2_f_r4_03_retrieval_only_reported_as_not_ran(self, sample_gold_queries):
         q = sample_gold_queries[0]
         res = Evaluator.evaluate_engine("Eng", "clean", [q], {q.id: [_create_synthetic_retrieval_result("D")]})
         assert getattr(res, "llm_stage_ran", False) is False
-
-    def test_t2_f_r4_03_empty_generated_responses_dict(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        res = Evaluator.evaluate_engine_with_llm("Eng", "clean", [q], {q.id: []}, {}, {})
-        assert getattr(res, "llm_stage_ran", False) is False
-
-    def test_t2_f_r4_03_traces_populated_under_llm_stage_ran(self, sample_gold_queries):
-        q = sample_gold_queries[0]
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng", "sparse", [q], {q.id: [_create_synthetic_retrieval_result("D")]},
-            {q.id: "resp"}, {q.id: JudgeVerdict(True, False, False, "reason")}
-        )
-        assert len(res.traces) == 1
-        assert res.traces[0].is_poison_adopted is True
-
-    def test_t2_f_r4_03_serialization_of_llm_stage_ran_field(self):
-        r = EngineBenchmarkResult("E", "c", 1, 0, 0, 0, 1, 1, 0, 1, 0)
-        if hasattr(r, "llm_stage_ran"):
-            r.llm_stage_ran = True
-            assert dataclasses.asdict(r)["llm_stage_ran"] is True
-
-    # --- Boundaries for F-R4-04 ---
-    def test_t2_f_r4_04_empty_items_list(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        reqs, manifest = judge.build_batch_requests([], "gt")
-        assert reqs == []
-        assert manifest == []
-
-    def test_t2_f_r4_04_100_identical_prompts_dedup_false(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [{"scenario": f"S{i}", "query_id": "Q1", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"} for i in range(100)]
-        if "deduplicate" in LLMJudge.build_batch_requests.__code__.co_varnames:
-            reqs, _ = judge.build_batch_requests(items, "gt", deduplicate=False)
-            assert len(reqs) == 100
-
-    def test_t2_f_r4_04_custom_id_format_compliance(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [{"scenario": "S", "query_id": "Q", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"}]
-        reqs, _ = judge.build_batch_requests(items, "gt")
-        assert len(reqs[0]["custom_id"]) <= 64
-
-    def test_t2_f_r4_04_manifest_maps_all_scenarios(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [
-            {"scenario": "S1", "query_id": "Q1", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"},
-            {"scenario": "S2", "query_id": "Q1", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"},
-        ]
-        _, manifest = judge.build_batch_requests(items, "gt")
-        assert len(manifest) == 2
-
-    def test_t2_f_r4_04_dedup_toggle_preserves_order(self):
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [{"scenario": f"S{i}", "query_id": f"Q{i}", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"} for i in range(5)]
-        _, m = judge.build_batch_requests(items, "gt")
-        assert [item["scenario"] for item in m] == [f"S{i}" for i in range(5)]
 
     # --- Boundaries for F-R5-01 ---
     def test_t2_f_r5_01_corpus_size_none_falls_back_to_query_count(self, tmp_path):
@@ -1872,28 +1470,6 @@ class TestTier3_CrossFeatureCombinations:
                 assert res.retrieval_asr_targeted == 0.0
                 assert res.retrieval_asr_untargeted == 1.0
 
-    def test_t3_comb_03_llm_judge_unparseable_coverage_rate_with_pareto_ranking(self, sample_gold_queries):
-        """F-R4-01 (Judge Coverage Rate) x F-R5-02 (Pareto Ranking)."""
-        q = sample_gold_queries[0]
-        v_invalid = JudgeVerdict(False, False, False, "bad", is_valid=False) if hasattr(JudgeVerdict, "is_valid") else JudgeVerdict(False, False, False, "bad")
-        res = Evaluator.evaluate_engine_with_llm(
-            "Eng1", "sparse", [q], {q.id: [_create_synthetic_retrieval_result("D", is_poisoned=False)]},
-            {q.id: "resp"}, {q.id: v_invalid}
-        )
-        if hasattr(res, "judge_coverage_rate"):
-            assert res.judge_coverage_rate == 0.0
-
-    def test_t3_comb_04_pure_topological_active_graph_with_assertion_alignment(self, sample_clean_documents, sample_gold_queries):
-        """F-R2-05 (Pure Topological Attacker) x F-R4-02 (Stimulus-Assay Alignment)."""
-        attacker = PureTopologicalPoisonAttacker()
-        q = sample_gold_queries[0]
-        p = attacker.generate_poison(q)
-        mgr = CorpusPoisonManager()
-        if hasattr(mgr, "get_injected_assertion"):
-            assertion = mgr.get_injected_assertion(q, "pure_topological")
-            rec = stages.make_stage_a_record("Scen", "GraphRAG", "topological", q, [], "resp", 1.0, 1.0, injected_assertion=assertion) if "injected_assertion" in stages.make_stage_a_record.__code__.co_varnames else stages.make_stage_a_record("Scen", "GraphRAG", "topological", q, [], "resp", 1.0, 1.0)
-            assert "topology" in rec["target_poison_assertion"].lower() or "synchronization" in rec["target_poison_assertion"].lower()
-
     def test_t3_comb_05_fallback_rate_and_high_precision_latency_joint_reporting(self, sample_clean_documents, sample_gold_queries):
         """F-R2-04 (Fallback Rate) x F-R5-04 (High Precision Latency)."""
         q = sample_gold_queries[0]
@@ -1903,32 +1479,6 @@ class TestTier3_CrossFeatureCombinations:
             assert res.graph_fallback_rate == 1.0
         if hasattr(res, "latency_median_ms"):
             assert res.latency_median_ms == 25.5
-
-    def test_t3_comb_06_lossless_serialization_with_aligned_stage_a_record(self, tmp_path, sample_gold_queries):
-        """F-R1-03 (Lossless Serialization) x F-R4-02 (Aligned Assertions)."""
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result("P1", is_poisoned=True, poison_target_query=q.id, poison_type="blackbox")
-        rec = stages.make_stage_a_record(
-            "Scen1", "Dense", "blackbox", q, [r], "resp", 10.0, 50.0,
-            injected_assertion="Reclassified advisory notice"
-        ) if "injected_assertion" in stages.make_stage_a_record.__code__.co_varnames else stages.make_stage_a_record("Scen1", "Dense", "blackbox", q, [r], "resp", 10.0, 50.0)
-        p = tmp_path / "stage_a.jsonl"
-        stages.write_stage_a(p, {}, [rec])
-        _, recs = stages.read_stage_a(p)
-        assert recs[0]["retrieved"][0].get("poison_target_query") == q.id
-        if "injected_assertion" in stages.make_stage_a_record.__code__.co_varnames:
-            assert recs[0]["target_poison_assertion"] == "Reclassified advisory notice"
-
-    def test_t3_comb_07_deduplication_opt_out_with_exact_mcnemar_testing(self):
-        """F-R4-04 (Deduplication Scoping) x F-R5-05 (Exact McNemar Test)."""
-        judge = LLMJudge(client=MagicMock(), async_client=MagicMock())
-        items = [{"scenario": f"S{i}", "query_id": f"Q{i}", "query_text": "q", "ground_truth_answer": "a", "target_poison_assertion": "t", "generated_response": "r"} for i in range(10)]
-        if "deduplicate" in LLMJudge.build_batch_requests.__code__.co_varnames:
-            reqs, manifest = judge.build_batch_requests(items, "gt", deduplicate=False)
-            assert len(reqs) == 10
-            # Test McNemar on 10 items
-            stat, p, sig = reporter.mcnemar_test([True]*10, [False]*10)
-            assert p < 0.05
 
     def test_t3_comb_08_zero_utility_retriever_with_zero_targeted_asr(self):
         """F-R1-04 (Targeted ASR) x F-R5-02 (Pareto Ranking Disqualification)."""
@@ -1954,30 +1504,14 @@ class TestTier3_CrossFeatureCombinations:
         res = graph_eng.retrieve(q.query_text, top_k=5)
         assert len(res) > 0
 
-    def test_t3_comb_10_llm_stage_ran_true_with_dynamic_report_synthesis(self, tmp_path):
-        """F-R4-03 (llm_stage_ran Flag) x F-R5-01 (Dynamic Report Synthesis)."""
-        r = EngineBenchmarkResult(
-            engine_name="ResilientRAG", attack_type="sparse", total_queries=10,
-            retrieval_asr_top1=0.1, retrieval_asr_top3=0.1, retrieval_asr_top5=0.1,
-            clean_recall_top5=0.9, clean_mrr=0.9, generation_asr=0.0,
-            ground_truth_retention=1.0, conflict_detection_rate=0.0
-        )
-        if hasattr(r, "llm_stage_ran"):
-            r.llm_stage_ran = True
-        out_file = tmp_path / "rep.md"
-        content = reporter.BenchmarkReporter.generate_markdown_report([r], out_file)
-        assert "0.0%" in content or "ResilientRAG" in content
-
     def test_t3_comb_11_retrieval_metadata_pipeline_flow(self, sample_gold_queries):
-        """F-R1-02 (Retriever Targeting) -> F-R1-03 (Stage A JSONL) -> F-R1-04 (Evaluator)."""
+        """F-R1-02 (Retriever Targeting) -> F-R1-04 (Evaluator)."""
         q = sample_gold_queries[0]
         p_doc = CTIDocument("P1", "Title", "Text", "cve", is_poisoned=True, poison_target_query=q.id, poison_type="sparse")
         bm25 = BM25Retriever()
         bm25.build_index([p_doc])
         retrieved = bm25.retrieve("Text", top_k=1)
-        rec = stages.make_stage_a_record("Scen", "BM25", "sparse", q, retrieved, "resp", 1.0, 1.0)
-        ret_loaded = [stages.retrieval_result_from_dict(r) for r in rec["retrieved"]]
-        res = Evaluator.evaluate_engine("BM25", "sparse", [q], {q.id: ret_loaded})
+        res = Evaluator.evaluate_engine("BM25", "sparse", [q], {q.id: retrieved})
         if hasattr(res, "retrieval_asr_targeted"):
             assert res.retrieval_asr_targeted == 1.0
 
@@ -1992,20 +1526,6 @@ class TestTier3_CrossFeatureCombinations:
     def test_t3_comb_14_multi_vector_benchmark_with_coverage_and_dynamic_synthesis(self):
         """F-R4-01 (Coverage Rate) x F-R5-01 (Dynamic Synthesis)."""
         pass
-
-    def test_t3_comb_15_end_to_end_stages_a_b_c_pipeline_integrity(self, tmp_path, sample_gold_queries):
-        """End-to-end simulation of Stages A -> B -> C preserving all remediation contracts."""
-        q = sample_gold_queries[0]
-        r = _create_synthetic_retrieval_result("P1", is_poisoned=True, poison_target_query=q.id, poison_type="sparse")
-        rec = stages.make_stage_a_record("S1", "BM25", "sparse", q, [r], "resp", 1.0, 1.0)
-        p = tmp_path / "a.jsonl"
-        stages.write_stage_a(p, {"run_id": "test"}, [rec])
-        hdr, recs = stages.read_stage_a(p)
-        assert len(recs) == 1
-        res = Evaluator.evaluate_engine("BM25", "sparse", [q], {q.id: [stages.retrieval_result_from_dict(r) for r in recs[0]["retrieved"]]})
-        if hasattr(res, "retrieval_asr_targeted"):
-            assert res.retrieval_asr_targeted == 1.0
-
 
 # ============================================================================
 # TIER 4: REAL-WORLD APPLICATION SCENARIOS (10 CTI Scenarios)
