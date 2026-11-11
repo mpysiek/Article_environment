@@ -43,7 +43,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-BENCH = ["--isolated-targets", "--topological", "--cost-free", "--log-ties"]
+BENCH = ["--isolated-targets", "--topological", "--log-ties"]
 SWEEP_GRID = ["10", "20", "40", "80", "100", "120", "140", "146", "147", "150", "160", "320"]
 
 #: (name, argv after the interpreter, output directory the step writes to or None, fatal)

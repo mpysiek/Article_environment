@@ -6,7 +6,6 @@ Comprehensive test suite verifying:
 3. Top-k rank permutations (rank 1 untargeted / rank 2 targeted, beyond rank 5, multiple poisons).
 4. High-density background contamination (60+ foreign poisons) across all 4 retrievers
    (BM25, DenseFAISS, HybridRerank, GraphRAG including graph traversal and fallback).
-5. Stage A serialization fidelity under hostile payloads (control characters, JSON escapes, unicode, legacy dicts).
 """
 
 from pathlib import Path
@@ -19,14 +18,6 @@ from src.engines.retrievers import (
     DenseFAISSRetriever,
     HybridRerankRetriever,
     GraphRAGRetriever,
-)
-from src.evaluation.stages import (
-    retrieval_result_to_dict,
-    retrieval_result_from_dict,
-    make_stage_a_record,
-    write_stage_a,
-    read_stage_a,
-    rebuild_scenario_inputs,
 )
 from src.evaluation.metrics import Evaluator, EngineBenchmarkResult, GenerationTrace
 
@@ -488,92 +479,3 @@ class TestHighDensityBackgroundContamination:
         q = GoldQuery("Q-FALLBACK", "What is UnusualTermX99?", "cve", ["GT"], "Ans", "Assert")
         res = Evaluator.evaluate_engine("GraphRAG", "graph", [q], {"Q-FALLBACK": results})
         assert res.retrieval_asr_targeted == 1.0
-
-
-# ===========================================================================
-# 5. Serialization Stress in stages.py
-# ===========================================================================
-
-class TestAdversarialStagesSerialization:
-    def test_hostile_strings_serialization_roundtrip(self):
-        """Test serialization of hostile payloads: JSON chars, unicode, newlines, null byte repr."""
-        hostile_payloads = [
-            '{"hack": true, "array": [1, 2, 3]}',
-            "String with 'single' and \"double\" quotes and \\backslashes\\",
-            "Newline\nand\r\ncarriage\rreturn\tand\ttabs",
-            "Unicode: 💀⚡🔥 漏洞利用 (Log4Shell) Уязвимость",
-            "",
-            None,
-        ]
-        for payload in hostile_payloads:
-            r = RetrievalResult(
-                doc_id="DOC-HOSTILE",
-                score=0.77,
-                rank=1,
-                title="Title",
-                text="Text with " + (payload if payload else ""),
-                is_poisoned=True,
-                doc_type="poison",
-                poison_target_query=payload,
-                poison_type="dense",
-                metadata={"nested": {"payload": payload}},
-            )
-            d = retrieval_result_to_dict(r)
-            assert d["poison_target_query"] == payload
-
-            r_recovered = retrieval_result_from_dict(d)
-            assert r_recovered.poison_target_query == payload
-            assert r_recovered.metadata == {"nested": {"payload": payload}}
-
-    def test_stage_a_file_roundtrip_with_foreign_and_targeted_poisons(self, tmp_path: Path):
-        """Full file-based Stage A serialization test with foreign + targeted + clean documents."""
-        query = GoldQuery("Q-ROUNDTRIP-1", "Test Query", "cve", ["GT-1"], "Ans", "Assert")
-        retrieved = [
-            RetrievalResult("P-FOREIGN", 0.99, 1, "Foreign", "Txt", True, "poison", poison_target_query="Q-OTHER"),
-            RetrievalResult("P-TARGET", 0.95, 2, "Target", "Txt", True, "poison", poison_target_query="Q-ROUNDTRIP-1"),
-            RetrievalResult("CLEAN-1", 0.90, 3, "Clean", "Txt", False, "cve"),
-        ]
-        record = make_stage_a_record(
-            scenario="test_adversarial",
-            engine_name="BM25",
-            attack_type="sparse",
-            query=query,
-            retrieved=retrieved,
-            generated_response="Response",
-            retrieval_latency_ms=5.0,
-            generation_latency_ms=100.0,
-        )
-        file_path = tmp_path / "stage_a_adversarial.jsonl"
-        write_stage_a(file_path, {"test_run": 1}, [record])
-
-        header, records = read_stage_a(file_path)
-        assert len(records) == 1
-        outputs, _, _, _ = rebuild_scenario_inputs(records)
-        rebuilt_list = outputs["Q-ROUNDTRIP-1"]
-        assert len(rebuilt_list) == 3
-
-        res = Evaluator.evaluate_engine("BM25", "sparse", [query], outputs)
-        assert res.retrieval_asr_targeted_top1 == 0.0
-        assert res.retrieval_asr_targeted_top5 == 1.0
-        assert res.retrieval_asr_any_top1 == 1.0
-        assert res.retrieval_asr_untargeted_top1 == 1.0
-
-    def test_legacy_dict_missing_targeting_keys_deserialization(self):
-        """Deserializing legacy Stage A record that completely lacks poison_target_query key."""
-        legacy_dict = {
-            "doc_id": "LEGACY-01",
-            "score": 0.85,
-            "rank": 1,
-            "title": "Old Doc",
-            "text": "Text",
-            "is_poisoned": True,
-            "doc_type": "poison",
-            "metadata": {"old_key": 1},
-        }
-        # Notice "poison_target_query" and "poison_type" are absent
-        r = retrieval_result_from_dict(legacy_dict)
-        assert r.doc_id == "LEGACY-01"
-        assert r.is_poisoned is True
-        assert r.poison_target_query is None
-        assert r.poison_type is None
-        assert r.metadata == {"old_key": 1}

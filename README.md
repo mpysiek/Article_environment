@@ -14,10 +14,13 @@ intentionally not run, so every number is a deterministic, zero-cost measurement
 | :--- | :--- |
 | Corpus | 24,000 documents from MITRE ATT&CK (STIX 2.1), CTIBench, CISA KEV and CVE Program cvelistV5 |
 | Queries | 150 in three strata: ATT&CK Relational, CVE Exact-Match, CVE Descriptive |
-| Engines | Sparse-BM25, Dense-FAISS (bge-small-en-v1.5), Hybrid-Reranker (RRF + ms-marco-MiniLM-L-6-v2), GraphRAG (entity graph) |
+| Engines | Sparse-BM25, Dense-FAISS (bge-small-en-v1.5), Hybrid-Reranker (RRF + ms-marco-MiniLM-L-6-v2), GraphRAG (entity graph; called *Graph-Traversal* in the article) |
 | Attacks | 9 vectors (incl. a `query_echo` stress arm and topological bridge injection), budgets 1, 2, 3, 5 |
 | Protocol | per-query isolated index (`--isolated-targets`), no defences, top-k = 5, seed 42 |
 | Metrics | `poison@1`, `poison@5`, `poison@1 cond`, `GT displaced@5`, with bounds over complete score-tie groups |
+
+The article is the reference description of the study. Where this repository and the article
+disagree, the article is right and the repository is to be corrected.
 
 ## Which run is which
 
@@ -37,7 +40,7 @@ python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\
 pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 # exact versions of the reference run: requirements-lock.txt
 
-pytest tests -q -p no:cacheprovider                     # 433 tests; test_data_integrity.py needs data/
+pytest tests -q -p no:cacheprovider                     # 333 tests; test_data_integrity.py needs data/
 ```
 
 ### Check the published numbers without re-running anything
@@ -52,7 +55,7 @@ The audit gate on run v3 ends with `PASS: 9  FAIL: 0  INFO: 1`. GitHub Actions r
 and this gate on every push.
 
 `scripts/regenerate_report.py` rebuilds the report from stored traces and **overwrites** the
-report in `--in-dir`; never point it at `outputs/reports/v2/`.
+report in `--in-dir`. Scripts that write results refuse `outputs/reports/v2/`, the archived run.
 
 ### Re-run the benchmark
 
@@ -81,19 +84,28 @@ src/
   corpus/         corpus assembly from authentic CTI sources, query sets v2 and v3
   engines/        the four retrievers
   attacks/        poisoning vectors and payload construction
-  evaluation/     metrics, tie-aware evaluation stages, (optional) LLM judge
+  evaluation/     metrics, tie bounds, isolated and shared retrieval protocol
   visualization/  report generation and aggregation rules
-  defense/        sanitisers (not enabled in the reported runs)
-  llm/            optional OpenRouter clients (not used by the cost-free benchmark)
 scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
-tests/            433 tests
+tests/            333 tests (see tests/README.md)
 outputs/          results of the runs reported in the article (see above) and their logs
 data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
-archive/          superseded code and the agent workflow history, kept for traceability
 ```
 
-`AGENTS.md` (Polish) documents the methodological rules the code enforces and the state of each
-run; `CHANGELOG.md` records every change to the measurement and reporting layers.
+## Documentation
+
+| File | Language | Contents |
+| :--- | :--- | :--- |
+| `README.md` | English | what the benchmark is, how to check and re-run it |
+| [`data/README.md`](data/README.md) | English | data sources, versions, licences, checksums, corpus manifest |
+| [`tests/README.md`](tests/README.md) | English | what each test file guards and how to run the suite |
+| [`AGENTS.md`](AGENTS.md) | Polish | methodological rules the code enforces, state of each run, working rules for the repository |
+| [`CHANGELOG.md`](CHANGELOG.md) | Polish | every change to the measurement and reporting layers |
+
+Material removed from the repository stays in the git history; its last tracked state is
+commit `bee8fe6`. That covers the agent workflow history, pre-1.3.0 code copies, superseded
+scripts, the input sanitisers and the optional LLM generation and judging stage, which no
+reported run used.
 
 ## Scope
 
@@ -102,6 +114,21 @@ run; `CHANGELOG.md` records every change to the measurement and reporting layers
 * No defence is enabled; all figures are upper bounds for undefended retrieval.
 * GraphRAG has no point estimate of `poison@1`: rank 1 is often a score tie, so results are
   reported as ranges over every ordering of the tie group.
+* The engines are not ranked. Viable strata differ between engines, so per-engine averages
+  describe different groups of queries.
+* Hybrid-Reranker reranks a pool of 10 candidates fused by RRF from the top 10 of BM25 and of
+  the dense engine. When the two lists share no document, each engine contributes only its
+  ranks 1–5, so five payloads can push the answer out of the pool before the cross-encoder
+  sees it.
+
+## Names and counts in the article
+
+| Article | Repository |
+| :--- | :--- |
+| Graph-Traversal | `GraphRAG` (the `engine_name` stored in the result files) |
+| 429 tests | 333 tests. The article's code state is commit `1824048`. Since then four corpus-manifest tests were added (433) and the 100 tests of the removed LLM stage and defence filters were dropped; the tests of the retrieval measurement are the same |
+| restricted McNemar family, 43 tests (Table 9) | `scripts/mcnemar_restricted.py`, files `mcnemar_restricted.*` |
+| unrestricted family, 74 tests | Section 3.1 of `rag_poisoning_comparison_report.md` |
 
 ## Citation
 

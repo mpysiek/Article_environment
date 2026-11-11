@@ -8,8 +8,8 @@ Validates:
    and avoidance of B=1 saturation ceiling.
 3. TestCleanRecallPreservation (4 tests):
    Clean recall in isolated mode >= shared mode, preservation when attack fails, graceful degradation.
-4. TestSharedModeBackwardCompatibility (4 tests):
-   execute_shared_retrieval remains operational, produces expected foreign contamination, Stage A JSONL preserves flags.
+4. TestSharedModeBackwardCompatibility (2 tests):
+   execute_shared_retrieval remains operational, produces expected foreign contamination.
 5. TestBenchmarkAndReporterIntegration (2 tests):
    CLI argument parsing, report generation with dynamic isolated protocol explanations, Pareto ranking table.
 """
@@ -41,10 +41,6 @@ from src.engines.retrievers import (
 from src.evaluation.stages import (
     execute_isolated_retrieval,
     execute_shared_retrieval,
-    make_stage_a_record,
-    write_stage_a,
-    read_stage_a,
-    rebuild_scenario_inputs,
 )
 from src.evaluation.metrics import Evaluator, EngineBenchmarkResult, GenerationTrace
 from src.visualization.reporter import (
@@ -434,68 +430,6 @@ class TestSharedModeBackwardCompatibility:
         assert hasattr(res, "retrieval_asr_untargeted")
         assert hasattr(res, "retrieval_asr_targeted")
 
-    def test_stage_a_serialization_records_isolated_target_flag(self, tmp_path, synthetic_cti_fixture):
-        clean_docs, queries, poison_mgr = synthetic_cti_fixture
-        q = queries[0]
-        results = [
-            RetrievalResult(
-                doc_id="DOC_1", score=1.0, rank=1, title="Title", text="Text",
-                is_poisoned=True, doc_type="cve", poison_target_query=q.id, poison_type="sparse"
-            )
-        ]
-
-        rec_iso = make_stage_a_record(
-            scenario="sparse_b1",
-            engine_name="BM25",
-            attack_type="sparse",
-            query=q,
-            retrieved=results,
-            generated_response="Response text",
-            retrieval_latency_ms=5.0,
-            generation_latency_ms=10.0,
-            isolated_target=True
-        )
-        rec_shared = make_stage_a_record(
-            scenario="sparse_b1",
-            engine_name="BM25",
-            attack_type="sparse",
-            query=q,
-            retrieved=results,
-            generated_response="Response text",
-            retrieval_latency_ms=5.0,
-            generation_latency_ms=10.0,
-            isolated_target=False
-        )
-
-        file_path = tmp_path / "stage_a.jsonl"
-        write_stage_a(file_path, {"tier": "local"}, [rec_iso, rec_shared])
-        header, read_records = read_stage_a(file_path)
-
-        assert len(read_records) == 2
-        assert read_records[0]["isolated_target"] is True
-        assert read_records[1]["isolated_target"] is False
-
-    def test_rebuild_scenario_inputs_backward_compatible(self, synthetic_cti_fixture):
-        clean_docs, queries, _ = synthetic_cti_fixture
-        q = queries[0]
-        results = [
-            RetrievalResult(
-                doc_id="DOC_1", score=1.0, rank=1, title="Title", text="Text",
-                is_poisoned=False, doc_type="cve"
-            )
-        ]
-        records = [
-            make_stage_a_record("clean", "BM25", "clean", q, results, "resp1", 2.5, 5.0, isolated_target=True),
-            make_stage_a_record("clean", "BM25", "clean", queries[1], results, "resp2", 3.0, 6.0, isolated_target=False),
-        ]
-
-        outputs, generated, ret_lat, gen_lat = rebuild_scenario_inputs(records)
-        assert q.id in outputs
-        assert queries[1].id in outputs
-        assert ret_lat[q.id] == 2.5
-        assert gen_lat[q.id] == 5.0
-
-
 # ===========================================================================
 # 5. Benchmark Script & Reporter Integration Tests
 # ===========================================================================
@@ -550,6 +484,7 @@ class TestBenchmarkAndReporterIntegration:
         assert out_file.exists()
         assert "Recommendation 3" in md or "Izolowany" in md
         assert "0.0%" in md
-        assert "Pareto" in md
+        assert "Pareto" not in md
+        assert "Status użyteczności" in md
         assert "VIABLE" in md
         assert "ResilientGraphRAG" in md

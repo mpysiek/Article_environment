@@ -8,7 +8,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.evaluation.metrics import EngineBenchmarkResult, GenerationTrace
 from src.visualization.reporter import BenchmarkReporter
-from src.config import config
+from src.config import config, refuse_archive_dir
 
 def main():
     parser = argparse.ArgumentParser(description="Re-render the markdown report from stored JSON metrics.")
@@ -19,7 +19,8 @@ def main():
                              "run_manifest.json when present; this flag is the fallback for "
                              "archived runs that predate the manifest.")
     args = parser.parse_args()
-    reports_dir = Path(args.in_dir) if args.in_dir else config.REPORTS_DIR
+    # The report is written back into --in-dir, so the archived v2 run is off limits.
+    reports_dir = refuse_archive_dir(Path(args.in_dir) if args.in_dir else config.REPORTS_DIR)
     corpus_size = args.corpus_size
 
     json_path = reports_dir / "comparison_benchmark_results.json"

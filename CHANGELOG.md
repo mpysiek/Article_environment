@@ -5,6 +5,139 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 
 ---
 
+## [1.3.3] - 2026-11-11
+
+### Summary
+Zgodność z artykułem: **pomiar, dane i liczby bez zmian**. Raport przestaje ogłaszać tezy,
+których artykuł nie zawiera, a reguły agregacji mają jedną definicję.
+
+Kontrola: raport v3 odtworzony kodem sprzed zmian jest identyczny z zapisanym; po zmianach
+różni się 5 wierszami tabeli w Sekcji 3 (te same liczby, bez numerów i statusu Pareto),
+etykietami i zdaniami opisanymi niżej. Bramka audytu: 9 PASS, 0 FAIL, 1 INFO, wyjście
+identyczne z `outputs/logs/v3_audit.log`. `mcnemar_restricted.py`: 43 testy, 34 bez par
+niezgodnych, 2 istotne.
+
+### Raport (`src/visualization/reporter.py`, raport v3 odtworzony)
+- **Usunięty front Pareto i ranking silników.** Sekcja 3 to teraz zestawienie średnich bez
+  kolumny „Rank" i bez statusu „Pareto Optimal"; Obserwacja 1 nie wskazuje zwycięzcy. Artykuł
+  nie rankinguje architektur, a oś frontu (`poison@5`) była sprzeczna z regułą 2.1.
+  `compute_pareto_ranking()` zostaje jako źródło średnich; pola `is_pareto_optimal`
+  i `pareto_rank` nie trafiają do raportu.
+- **Nazwa „ASR" znika z etykiet.** „Retr ASR@1" (71 wierszy Sekcji 3.1), „Budget=N (ASR@1)",
+  „ASR_cond" → `poison@1`, `poison@1 cond`. Zostaje jedno zdanie, które tłumaczy, dlaczego
+  metryki nie nazywają się ASR. Nazwy pól w JSON (`retrieval_asr_*`) bez zmian.
+- **Obserwacja 3** podaje `poison@1` GraphRAG na stratach użytecznych z zakresem remisowym
+  (12,0%, 0,0–87,0%) i nie porównuje go punktowo z innymi silnikami.
+- Ramka zakresu: nota o puli kandydatów Hybrid-Reranker i o nazwie *Graph-Traversal*.
+- Rodzina 74 testów McNemara w Sekcji 3.1 — te same testy i wartości (artykuł ją cytuje).
+
+### Porządki
+- Nowy `src/evaluation/strata.py`: `stratum_of`, `template_of`, próg 0,50, wykrywanie stałych
+  slotów. Zastępuje kopie w raporterze, `audit_checks.py`, `mcnemar_restricted.py`
+  i `tie_audit.py`. `run_bridge_sweep.py` zachowuje własne etykiety strat (format plików sweepu).
+- `--in-dir` wymagane w `audit_checks.py`, `mcnemar_restricted.py` i `tie_audit.py` (domyślnie
+  wskazywały archiwum v2). `mcnemar_restricted.py` dostaje `--out-dir`. Zapis do
+  `outputs/reports/v2/` kończy się odmową (`refuse_archive_dir()` w `src/config.py`).
+- `mcnemar_restricted.py` wyklucza porównania pozycji 1 według pełnej grupy remisowej, gdy
+  ślady ją zawierają. Na v3 wynik identyczny jak wcześniej.
+- Usunięty martwy kod raportera: `constant_slot_offenders()` i gałąź testów
+  `cross_sparse` / `cross_dense` (takich scenariuszy nie tworzy żaden skrypt). Ostatni stan:
+  commit `8d95bdf`.
+- Dwa testy sprawdzały obecność słowa „Pareto" w raporcie; teraz sprawdzają jego brak.
+  Liczba testów bez zmian: 333.
+
+### Dokumentacja
+- `AGENTS.md`: Sekcja 0 „Artykuł jest źródłem prawdy"; pula kandydatów; jedna definicja strat.
+- `README.md`: tabela nazw i liczb artykuł ↔ repozytorium (Graph-Traversal, 429 / 333 testy).
+
+---
+
+## [1.3.2] - 2026-11-11
+
+### Summary
+Wydanie publikacyjne: **pomiar, dane i wyniki bez zmian**. Repozytorium dostaje pliki
+potrzebne do publikacji i traci materiał, którego żaden raportowany przebieg nie używał:
+archiwum, martwy kod, filtry obronne i cały etap generacji LLM. Dokumentacja podaje te same
+liczby we wszystkich plikach.
+
+### Publikacja (commity `dd7340e`, `1824048`, `bee8fe6`)
+- `README.md` z mapą przebiegów i instrukcją sprawdzenia liczb, licencja MIT, `CITATION.cff`,
+  `.zenodo.json`, `.env.example`.
+- `data/README.md`: wersje i licencje źródeł, sposób przypięcia wersji; `data/SHA256SUMS`.
+- `requirements-lock.txt`: dokładne wersje pakietów przebiegów v2_rerun i v3.
+- GitHub Actions: testy (bez `test_data_integrity.py`) i bramka audytu na przebiegu v3.
+- `data/corpus_manifest_v2_24000.csv.xz`, `scripts/corpus_manifest.py` i
+  `tests/test_corpus_manifest.py` (4 testy). Razem **433** testy.
+
+### Usunięte
+Cały materiał jest w historii gita; ostatni stan przed usunięciem to commit `bee8fe6`.
+- `archive/` (118 plików): rusztowanie procesu pracy agentów (`agents_workflow/`, 96 plików),
+  kopia kodu sprzed 1.3.0 (`pre_v3_backup_2026-09-26/`, duplikat historii gita), zastąpione
+  skrypty uruchomieniowe, nieużywane moduły RunPod i scite oraz nieaktualny raport statusu
+  testów. Nic z tego nie było importowane przez `src/`, `scripts/` ani `tests/`.
+- `src/corpus/large_cti_generator.py`: syntetyczny generator korpusu bez żadnego odwołania
+  w kodzie i testach.
+- `TEST_INFRA.md`: opisywał plan prac (role agentów, kamienie milowe M1–M5, 225 testów) zamiast
+  stanu zestawu testów. Zastąpiony przez `tests/README.md`.
+- `src/defense/` (filtry entropii, spójności grafu i rozbieżności semantycznej): żaden
+  przebieg ich nie włączał; brak obrony jest założeniem badania.
+- **Etap generacji LLM** (benchmark go nie uruchamiał, `llm_stage_ran = False`):
+  - `src/llm/` (klienci OpenRouter, w tym Batch API, i generator RAG) oraz
+    `src/evaluation/llm_judge.py`;
+  - z `src/evaluation/stages.py` przekazywanie etapów A/B/C przez pliki JSONL (istniało tylko
+    po to, żeby sędzia mógł iść przez Batch API); zostały `execute_isolated_retrieval`,
+    `execute_shared_retrieval` i `deep_retrieve`;
+  - z `Evaluator` metoda `evaluate_engine_with_llm` i liczenie werdyktów sędziego; zostaje
+    `evaluate_engine`;
+  - z `scripts/run_comparison_benchmark.py` flaga `--llm` i gałąź generacji; `--cost-free`
+    zostaje bez działania, żeby stare polecenia nadal działały (potok już jej nie podaje);
+  - z reportera gałęzie `llm_stage_ran = True` (kolumny generacyjne, tytuły, opis sędziego);
+  - z `src/config.py` konfiguracja OpenRouter, Batch API i `CROSS_PROVIDER_TIERS`;
+  - `httpx` z `requirements.txt` i `.env.example`.
+- **Pola generacyjne zostają w schemacie** (`generation_asr`, `ground_truth_retention`,
+  `conflict_detection_rate`, `llm_stage_ran`, `judge_coverage_rate`,
+  `avg_generation_latency_ms` oraz pola śladów). Zapisane wyniki v2, v2_rerun i v3 je mają,
+  a `regenerate_report.py` wczytuje je przez `EngineBenchmarkResult(**d)`. Mają stałe
+  wartości, takie same jak dotąd w każdym przebiegu.
+- **Testy: 433 → 333.** Usunięte pliki `test_batch_client.py` (15), `test_judge_batch.py`
+  (11), `test_stages.py` (12) i `test_defenses.py` (4) oraz 58 testów w innych plikach, które
+  sprawdzały sędziego, zapis etapów A/B/C albo `evaluate_engine_with_llm` (48 w
+  `test_e2e_remediation.py`). Dwa testy przepisano na `evaluate_engine`.
+
+### Weryfikacja usunięcia etapu generacji
+- `regenerate_report.py` na zapisanych wynikach v2, v2_rerun i v3: raporty identyczne bajt w
+  bajt ze starym kodem (commit `8d95bdf`). Raport v3 zgadza się też z raportem w repozytorium
+  (różnią się tylko końce wierszy CRLF/LF).
+- Przebieg syntetyczny starym i nowym kodem (izolowany z `--topological --log-ties --query-set
+  v3`, B = 1, 3, oraz współdzielony, B = 1, 2): `comparison_benchmark_results.json` i
+  `generation_traces.json` identyczne poza latencjami; raporty różnią się tylko tabelą latencji
+  i znacznikiem czasu.
+- Bramka audytu v3: 9 PASS, 0 FAIL, 1 INFO. Testy: 324 passed (bez `test_data_integrity.py`).
+- Przy okazji: raporty v2 i v2_rerun w repozytorium różnią się od odtworzonych z ich danych,
+  także starym kodem, więc to stan sprzed tej zmiany.
+  - v2: 3 wiersze Sekcji 6. Archiwum pisał starszy reporter (dawny wzór progu mostów, brak
+    uwagi, że zakresy remisowe liczono tylko z pozycji 1–2).
+  - v2_rerun: 1 wiersz opisu metodologii. Raport z przebiegu wymienia „ablację echa zapytania
+    (`query_echo=False`)", a `regenerate_report.py` tego zdania nie odtwarza, bo ustawia
+    `query_echo=True`, gdy w wynikach jest ramię echo. Z tego powodu brakuje go też w raporcie
+    v3, który powstał przez `regenerate_report.py`.
+
+### Dokumentacja
+- `tests/README.md`: jak uruchomić testy, co pilnuje każdy plik, ile ma testów.
+- `README.md`: tabela dokumentów z ich językiem (README, `data/README.md` i `tests/README.md`
+  po angielsku, `AGENTS.md` i ten plik po polsku); usunięty wpis o `archive/`.
+- `AGENTS.md`: data stanu, liczba testów 333 (było 429), uwaga o `test_data_integrity.py`,
+  dokładny opis tego, co z `outputs/` jest śledzone. Reguła „materiał nieużywany odkładaj do
+  `archive/`" zastąpiona regułą „usuwaj i odnotuj w CHANGELOG commit, z którego da się go
+  odzyskać".
+- `.gitignore`: `archive/` ignorowany w całości (lokalne pozostałości, np. `outputs_v1/`).
+- `CITATION.cff`: wersja 1.3.2.
+
+Starsze wpisy poniżej opisują stan z chwili wydania; odwołania do `archive/` i `TEST_INFRA.md`
+zostają w nich bez zmian.
+
+---
+
 ## [1.3.1-docs] - 2026-09-27
 
 ### Summary

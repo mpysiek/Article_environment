@@ -3,8 +3,7 @@
 Validates:
 1. Schema extension on RetrievalResult (poison_target_query and poison_type).
 2. Propagation across all 4 retrievers (BM25, DenseFAISS, HybridRerank, GraphRAG).
-3. Lossless Stage A -> Stage C serialization round-trip in stages.py.
-4. Disaggregated metric calculation separating targeted ASR from foreign background contamination (A1, A6).
+3. Disaggregated metric calculation separating targeted ASR from foreign background contamination (A1, A6).
 """
 
 from pathlib import Path
@@ -16,14 +15,6 @@ from src.engines.retrievers import (
     DenseFAISSRetriever,
     HybridRerankRetriever,
     GraphRAGRetriever,
-)
-from src.evaluation.stages import (
-    retrieval_result_to_dict,
-    retrieval_result_from_dict,
-    make_stage_a_record,
-    write_stage_a,
-    read_stage_a,
-    rebuild_scenario_inputs,
 )
 from src.evaluation.metrics import Evaluator, EngineBenchmarkResult, GenerationTrace
 
@@ -181,97 +172,7 @@ class TestRetrieverTargetingPropagation:
 
 
 # ---------------------------------------------------------------------------
-# 3. Stage Serialization Round-Trip Tests
-# ---------------------------------------------------------------------------
-
-class TestStageTargetingSerialization:
-    def test_dict_serialization_preserves_targeting(self):
-        original = RetrievalResult(
-            doc_id="P-100",
-            score=0.88,
-            rank=2,
-            title="Fake Mitre Technique",
-            text="Injected payload text",
-            is_poisoned=True,
-            doc_type="mitre_technique",
-            poison_target_query="Q-TECHNIQUE-1",
-            poison_type="topological",
-            metadata={"custom_key": 42},
-        )
-        d = retrieval_result_to_dict(original)
-        assert d["poison_target_query"] == "Q-TECHNIQUE-1"
-        assert d["poison_type"] == "topological"
-
-        reconstructed = retrieval_result_from_dict(d)
-        assert reconstructed.doc_id == original.doc_id
-        assert reconstructed.score == original.score
-        assert reconstructed.rank == original.rank
-        assert reconstructed.is_poisoned is True
-        assert reconstructed.poison_target_query == "Q-TECHNIQUE-1"
-        assert reconstructed.poison_type == "topological"
-        assert reconstructed.metadata == {"custom_key": 42}
-
-    def test_stage_a_file_roundtrip_preserves_targeting(self, tmp_path: Path):
-        query = GoldQuery(
-            id="Q-STAGE-1",
-            query_text="What is Log4Shell?",
-            category="cve",
-            ground_truth_doc_ids=["CLEAN-1"],
-            ground_truth_answer="A remote code execution vulnerability.",
-            target_poison_assertion="It is a benign styling issue.",
-        )
-        retrieved = [
-            RetrievalResult(
-                doc_id="CLEAN-1",
-                score=0.92,
-                rank=1,
-                title="Clean Log4j",
-                text="Clean doc text",
-                is_poisoned=False,
-                doc_type="cve",
-            ),
-            RetrievalResult(
-                doc_id="POISON-1",
-                score=0.85,
-                rank=2,
-                title="Poison Log4j",
-                text="Poison doc text",
-                is_poisoned=True,
-                doc_type="poison",
-                poison_target_query="Q-STAGE-1",
-                poison_type="dense",
-            ),
-        ]
-        record = make_stage_a_record(
-            scenario="dense_poison_b1",
-            engine_name="Dense-FAISS",
-            attack_type="dense",
-            query=query,
-            retrieved=retrieved,
-            generated_response="Response text",
-            retrieval_latency_ms=10.0,
-            generation_latency_ms=250.0,
-        )
-
-        stage_file = tmp_path / "stage_a_test.jsonl"
-        write_stage_a(stage_file, {"run_id": "test_m1"}, [record])
-
-        header, records = read_stage_a(stage_file)
-        assert header["run_id"] == "test_m1"
-        assert len(records) == 1
-
-        outputs, _, _, _ = rebuild_scenario_inputs(records)
-        rebuilt = outputs["Q-STAGE-1"]
-        assert len(rebuilt) == 2
-
-        p_doc = rebuilt[1]
-        assert p_doc.is_poisoned is True
-        assert p_doc.poison_target_query == "Q-STAGE-1"
-        assert p_doc.poison_type == "dense"
-
-
-# ---------------------------------------------------------------------------
-# 4. Evaluator Targeted vs Untargeted Metric Calculation Tests
+# 3. Evaluator Targeted vs Untargeted Metric Calculation Tests
 # ---------------------------------------------------------------------------
 
 class TestTargetedVsUntargetedMetrics:

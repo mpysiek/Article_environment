@@ -5,9 +5,7 @@ Empirical challenger test harness targeting:
    failed attack clean baseline recovery, clean ground truth retention, and top-k displacement bounds.
 2. Shared mode backward compatibility: untargeted contamination metrics, execute_shared_retrieval contract,
    default behavior without flags.
-3. Stage A JSONL serialization: round-trip fidelity, legacy file backward compatibility (missing isolated_target),
-   downstream evaluator consumption.
-4. CLI argparse behavior: combinations, help formatting, error exits.
+3. CLI argparse behavior: combinations, help formatting, error exits.
 """
 
 import sys
@@ -38,13 +36,6 @@ from src.engines.retrievers import (
 from src.evaluation.stages import (
     execute_isolated_retrieval,
     execute_shared_retrieval,
-    make_stage_a_record,
-    write_stage_a,
-    read_stage_a,
-    rebuild_scenario_inputs,
-    rebuild_queries,
-    judge_items,
-    generations_by_key,
 )
 from src.evaluation.metrics import Evaluator, EngineBenchmarkResult, GenerationTrace
 import scripts.run_comparison_benchmark as benchmark_script
@@ -297,150 +288,7 @@ class TestSharedModeBackwardCompatibilityAdversarial:
 
 
 # ===========================================================================
-# 3. Stage A JSONL Serialization / Deserialization Adversarial Tests
-# ===========================================================================
-
-class TestStageASerializationAdversarial:
-    """Adversarial stress testing of Stage A JSONL serialization with isolated_target flag."""
-
-    def test_stage_a_roundtrip_with_isolated_target_boolean(self, tmp_path):
-        """Verify round-trip JSONL writes and reads isolated_target: bool without corruption."""
-        q = GoldQuery(
-            id="Q_TEST_1",
-            query_text="Test query for Log4Shell?",
-            category="cve",
-            ground_truth_doc_ids=["CVE-2021-44228"],
-            ground_truth_answer="Apache Log4j",
-            target_poison_assertion="Fake assertion"
-        )
-        retrieved = [
-            RetrievalResult(
-                doc_id="CVE-2021-44228",
-                score=10.5,
-                rank=1,
-                title="Log4Shell",
-                text="Log4j vulnerability",
-                is_poisoned=False,
-                doc_type="cve"
-            )
-        ]
-
-        rec_iso = make_stage_a_record(
-            scenario="scen_iso",
-            engine_name="BM25",
-            attack_type="sparse",
-            query=q,
-            retrieved=retrieved,
-            generated_response="Response 1",
-            retrieval_latency_ms=1.5,
-            generation_latency_ms=2.5,
-            isolated_target=True
-        )
-        rec_shared = make_stage_a_record(
-            scenario="scen_shared",
-            engine_name="BM25",
-            attack_type="sparse",
-            query=q,
-            retrieved=retrieved,
-            generated_response="Response 2",
-            retrieval_latency_ms=1.8,
-            generation_latency_ms=2.2,
-            isolated_target=False
-        )
-
-        stage_a_file = tmp_path / "stage_a_test.jsonl"
-        write_stage_a(stage_a_file, {"tier": "local", "model": "test"}, [rec_iso, rec_shared])
-
-        header, loaded_records = read_stage_a(stage_a_file)
-        assert header["tier"] == "local"
-        assert len(loaded_records) == 2
-
-        assert loaded_records[0]["isolated_target"] is True
-        assert isinstance(loaded_records[0]["isolated_target"], bool)
-        assert loaded_records[1]["isolated_target"] is False
-        assert isinstance(loaded_records[1]["isolated_target"], bool)
-
-    def test_legacy_stage_a_jsonl_without_isolated_target_handled_gracefully(self, tmp_path):
-        """Stress Test: A legacy stage A JSONL file generated before Recommendation 3 lacks
-        the 'isolated_target' key entirely. Verify all downstream reassembly functions handle it.
-        """
-        legacy_header = {"_header": {"version": 1, "tier": "local"}}
-        legacy_record = {
-            "scenario": "legacy_scen",
-            "engine_name": "BM25",
-            "attack_type": "sparse",
-            "query_id": "Q_LEGACY",
-            "query_text": "Legacy query text",
-            "category": "cve",
-            "ground_truth_doc_ids": ["CVE-LEGACY-001"],
-            "ground_truth_answer": "Legacy answer",
-            "target_poison_assertion": "Legacy assertion",
-            "generated_response": "Legacy response",
-            "retrieval_latency_ms": 3.0,
-            "generation_latency_ms": 5.0,
-            "retrieved": [
-                {
-                    "doc_id": "CVE-LEGACY-001",
-                    "score": 5.0,
-                    "rank": 1,
-                    "title": "Legacy CVE",
-                    "text": "Legacy text",
-                    "is_poisoned": False,
-                    "doc_type": "cve",
-                    "poison_target_query": None,
-                    "poison_type": None,
-                    "metadata": {}
-                }
-            ]
-            # Note: "isolated_target" key is intentionally absent!
-        }
-
-        file_path = tmp_path / "legacy_stage_a.jsonl"
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(legacy_header) + "\n")
-            f.write(json.dumps(legacy_record) + "\n")
-
-        # 1. read_stage_a succeeds
-        header, records = read_stage_a(file_path)
-        assert len(records) == 1
-        rec = records[0]
-        assert "isolated_target" not in rec
-
-        # 2. rebuild_scenario_inputs succeeds
-        outputs, gen_resp, ret_lat, gen_lat = rebuild_scenario_inputs(records)
-        assert "Q_LEGACY" in outputs
-        assert len(outputs["Q_LEGACY"]) == 1
-        assert gen_resp["Q_LEGACY"] == "Legacy response"
-
-        # 3. rebuild_queries succeeds
-        rebuilt_qs = rebuild_queries(records)
-        assert len(rebuilt_qs) == 1
-        assert rebuilt_qs[0].id == "Q_LEGACY"
-
-        # 4. judge_items succeeds
-        items = judge_items(records)
-        assert len(items) == 1
-        assert items[0]["query_id"] == "Q_LEGACY"
-
-        # 5. generations_by_key succeeds
-        gen_map = generations_by_key(records)
-        assert ("legacy_scen", "Q_LEGACY") in gen_map
-
-        # 6. Downstream evaluator succeeds
-        res = Evaluator.evaluate_engine(
-            engine_name=rec["engine_name"],
-            attack_type=rec["attack_type"],
-            queries=rebuilt_qs,
-            retrieval_outputs=outputs,
-            retrieval_latencies=ret_lat,
-            isolated_targets=rec.get("isolated_target", False)
-        )
-        assert res.isolated_targets is False
-        assert res.clean_recall_top5 == 1.0
-
-
-# ===========================================================================
-# 4. CLI Argparse Behavior Adversarial Tests
+# 3. CLI Argparse Behavior Adversarial Tests
 # ===========================================================================
 
 class TestCLIArgparseAdversarial:

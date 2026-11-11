@@ -22,8 +22,8 @@ Outputs (in --out-dir):
                                    with rank-1 tie groups and rank-5 boundary recorded
 
 Usage:
-  python scripts/tie_audit.py --in-dir outputs/reports/v2 --engines graphrag sparse
-  python scripts/tie_audit.py --in-dir outputs/reports/v2 --sweep-only
+  python scripts/tie_audit.py --in-dir outputs/reports/v3 --query-set v3 --engines graphrag sparse
+  python scripts/tie_audit.py --in-dir outputs/reports/v3 --query-set v3 --sweep-only
 """
 import argparse
 import json
@@ -46,6 +46,8 @@ from src.corpus.real_cti_loader import RealCTILoader
 from src.corpus.real_query_loader import build_real_gold_queries, QUERY_SETS
 from src.engines.retrievers import GraphRAGRetriever, BM25Retriever
 from src.attacks.poisoning import CorpusPoisonManager
+from src.config import refuse_archive_dir
+from src.evaluation.strata import stratum_of
 
 # Reference arm (8 vectors) plus the query-echo arm, exactly as in run_comparison_benchmark.py.
 VECTORS: List[Tuple[str, str, bool]] = [
@@ -61,12 +63,7 @@ VECTORS: List[Tuple[str, str, bool]] = [
 ]
 BUDGETS = [1, 2, 3, 5]
 SWEEP_BRIDGES = [10, 20, 40, 80, 100, 120, 140, 146, 147, 150, 160, 320]
-STRATUM = {"cve_lookup": "cve_exact", "cve_descriptive": "cve_descriptive"}
 TOP_K = 5
-
-
-def stratum_of(category: str) -> str:
-    return STRATUM.get(category, "attack_relational")
 
 
 def deep_retrieve(engine, query_text: str, min_depth: int = 200):
@@ -141,7 +138,8 @@ def load_stored(in_dir: Path) -> Dict[Tuple[str, str], Dict[str, List[str]]]:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--in-dir", type=str, default="outputs/reports/v2")
+    ap.add_argument("--in-dir", type=str, required=True,
+                    help="Results directory of the run to audit, e.g. outputs/reports/v3.")
     ap.add_argument("--out-dir", type=str, default=None)
     ap.add_argument("--engines", nargs="+", default=["graphrag", "sparse"], choices=["graphrag", "sparse"])
     ap.add_argument("--bridge-count", type=int, default=40)
@@ -152,7 +150,7 @@ def main():
     args = ap.parse_args()
 
     in_dir = Path(args.in_dir)
-    out_dir = Path(args.out_dir) if args.out_dir else in_dir
+    out_dir = refuse_archive_dir(args.out_dir if args.out_dir else in_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     clean_docs = RealCTILoader().load_full_real_corpus(target_cves=24000)
