@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below."
+title: "CTI RAG Poisoning Benchmark"
+type: software
+version: "1.3.1"
+date-released: "2026-11-11"
+license: MIT
+repository-code: "https://github.com/mpysiek/Projekt_RAG"
+authors:
+  - family-names: "Pyśk"
+    given-names: "Mateusz"
+    affiliation: "Military University of Technology (Wojskowa Akademia Techniczna), Faculty of Cybernetics, Warsaw, Poland"
+abstract: >-
+  Deterministic, zero-cost benchmark of retrieval-layer robustness to corpus poisoning in
+  cyber threat intelligence (CTI) retrieval-augmented generation. Four retrieval
+  architectures (BM25, dense bi-encoder, hybrid fusion with cross-encoder reranking,
+  entity-graph traversal), a 24,000-document corpus from MITRE ATT&CK, CTIBench, CISA KEV
+  and the CVE Program, 150 queries in three strata, nine attack vectors and budgets of one
+  to five payloads.
+keywords:
+  - retrieval-augmented generation
+  - corpus poisoning
+  - cyber threat intelligence
+  - retrieval robustness
+  - graph-based retrieval
+  - benchmark methodology
+  - MITRE ATT&CK
+preferred-citation:
+  type: article
+  title: "Rank Placement Is Not Displacement: A Deterministic Benchmark of Retrieval-Layer Robustness to Corpus Poisoning in Cyber Threat Intelligence RAG"
+  authors:
+    - family-names: "Pyśk"
+      given-names: "Mateusz"
+  year: 2026
+  status: preprint

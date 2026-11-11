@@ -1,0 +1,25 @@
+{
+  "title": "CTI RAG Poisoning Benchmark: code and results for \"Rank Placement Is Not Displacement\"",
+  "upload_type": "software",
+  "description": "<p>Deterministic, zero-cost benchmark of retrieval-layer robustness to corpus poisoning in cyber threat intelligence (CTI) retrieval-augmented generation (RAG). It compares four retrieval architectures (lexical BM25, dense bi-encoder, hybrid fusion with cross-encoder reranking and entity-graph traversal) on a 24,000-document corpus built from MITRE ATT&amp;CK, CTIBench, CISA KEV and the CVE Program, with 150 queries in three strata, nine attack vectors and budgets of one to five payloads.</p><p>The archive contains the code and the complete outputs of the runs reported in the article: the main run v3, the control re-run v2_rerun (original question templates) and the archived run v2, including per-query traces with full score-tie groups, the bridge-count sweep and the McNemar analysis.</p>",
+  "creators": [
+    {
+      "name": "Pyśk, Mateusz",
+      "affiliation": "Military University of Technology (Wojskowa Akademia Techniczna), Warsaw, Poland"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "retrieval-augmented generation",
+    "corpus poisoning",
+    "cyber threat intelligence",
+    "retrieval robustness",
+    "graph-based retrieval",
+    "hybrid retrieval",
+    "cross-encoder reranking",
+    "benchmark methodology",
+    "MITRE ATT&CK",
+    "adversarial information retrieval"
+  ],
+  "language": "eng"
+}
