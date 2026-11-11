@@ -118,6 +118,12 @@ Hit@5 ani Recall@5** z jednym wyjątkiem: złoty rekord zapytania CVE Descriptiv
 wyparcie zależą od uporządkowania remisów. Liczby wyparcia Sparse-BM25 mogą więc być o jeden
 wyższe (np. 0/100, zakres 0–1).
 
+**Remis RRF na granicy puli Hybrid-Reranker też leży poza polami `tie_*`.** Lista RRF jest
+obcinana do 10 kandydatów, a równe wyniki rozstrzyga kolejność BM25 przed dense. W v3 dotyczy
+to 1 748 z 5 550 list; odrzuconego kandydata da się wskazać w 90 (raz jest nim złoty rekord,
+w stratum nieużytecznym), dla 1 658 nie jest zapisany. Liczy to
+`scripts/rrf_pool_ties.py --in-dir outputs/reports/v3`.
+
 **MRR też zależy od remisów, a pola `tie_*` go nie obejmują**, bo MRR zależy od kolejności
 wewnątrz top-5, a nie tylko od grup na pozycji 1 i na granicy pozycji 5. Zakresy dla przebiegu
 v3, policzone z pełnych rankingów przebudowanych indeksów (odtwarzają one zapisane listy

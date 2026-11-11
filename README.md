@@ -49,6 +49,7 @@ pytest tests -q -p no:cacheprovider                     # 333 tests; test_data_i
 xz -dk outputs/reports/v3/*.json.xz
 python scripts/audit_checks.py --in-dir outputs/reports/v3      # methodological gate K1–K9, TIE
 python scripts/mcnemar_restricted.py --in-dir outputs/reports/v3
+python scripts/rrf_pool_ties.py --in-dir outputs/reports/v3     # ties in the cut of the hybrid candidate pool
 ```
 
 The audit gate on run v3 ends with `PASS: 9  FAIL: 0  INFO: 1`. GitHub Actions runs the tests
@@ -86,7 +87,7 @@ src/
   attacks/        poisoning vectors and payload construction
   evaluation/     metrics, tie bounds, isolated and shared retrieval protocol
   visualization/  report generation and aggregation rules
-scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
+scripts/          entry points: benchmark, bridge sweep, tie audit, RRF pool ties, audit gate, McNemar, pipeline, corpus manifest
 tests/            333 tests (see tests/README.md)
 outputs/          results of the runs reported in the article (see above) and their logs
 data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
@@ -133,6 +134,7 @@ reported run used.
 ## Citation
 
 See [`CITATION.cff`](CITATION.cff) or use **Cite this repository** on GitHub.
+Archived copy: [doi:10.5281/zenodo.24143623](https://doi.org/10.5281/zenodo.24143623).
 
 ## Licence
 

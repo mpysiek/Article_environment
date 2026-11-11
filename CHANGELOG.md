@@ -46,8 +46,19 @@ niezgodnych, 2 istotne.
 - Dwa testy sprawdzały obecność słowa „Pareto" w raporcie; teraz sprawdzają jego brak.
   Liczba testów bez zmian: 333.
 
+### Remisy RRF na granicy puli kandydatów
+- Nowy `scripts/rrf_pool_ties.py` (tylko czyta ślady). Hybrid-Reranker obcina listę RRF do 10
+  kandydatów i równe wyniki rozstrzyga kolejnością BM25 przed dense. W v3 o ostatnim miejscu
+  w puli zdecydowała ta kolejność w 1 748 z 5 550 list. Odrzuconego kandydata da się wskazać
+  w 90 listach (89 razy dokument obojętny, raz złoty rekord: SPARSE, B = 5, `ATTR-MAL-Dridex`,
+  stratum relacyjne, nieużyteczne dla tego silnika). Dla 1 658 list nie jest zapisany.
+  Pola `tie_*` tego nie obejmują. Liczby te cytuje poprawiona wersja artykułu (Sekcja 2.9).
+- Bez nowego testu: liczba testów (333) jest podana w artykule.
+
 ### Dokumentacja
-- `AGENTS.md`: Sekcja 0 „Artykuł jest źródłem prawdy"; pula kandydatów; jedna definicja strat.
+- `CITATION.cff`, `README.md`: DOI archiwum Zenodo (10.5281/zenodo.24143623).
+- `AGENTS.md`: Sekcja 0 „Artykuł jest źródłem prawdy"; pula kandydatów; jedna definicja strat;
+  remis RRF w Sekcji 2.3.
 - `README.md`: tabela nazw i liczb artykuł ↔ repozytorium (Graph-Traversal, 429 / 333 testy).
 
 ---
