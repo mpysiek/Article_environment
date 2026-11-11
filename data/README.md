@@ -35,8 +35,8 @@ if the corpus differs from the article's.
 | File in `data/raw/` | Source | Version used | Licence / terms |
 | :--- | :--- | :--- | :--- |
 | `enterprise_attack_stix21.json` | [MITRE ATT&CK STIX 2.1 data](https://github.com/mitre-attack/attack-stix-data) | Enterprise ATT&CK v19.2, accessed 2 Sep 2026 | [ATT&CK Terms of Use](https://attack.mitre.org/resources/legal-and-branding/terms-of-use/) |
-| `ctibench_rcm.tsv`, `ctibench_taa.tsv` | [CTIBench](https://huggingface.co/datasets/AI4Sec/cti-bench) (AI4Sec) | `main`, accessed 2 Sep 2026 | see dataset card |
-| `cisa_kev.json` | [CISA Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | accessed 6 Sep 2026 | public |
+| `ctibench_rcm.tsv`, `ctibench_taa.tsv` | [CTIBench](https://huggingface.co/datasets/AI4Sec/cti-bench) (AI4Sec) | `main`, accessed 2 Sep 2026 | CC BY-NC-SA 4.0 |
+| `cisa_kev.json` | [CISA Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | catalogue version 2026.09.04 (history: [cisagov/kev-data](https://github.com/cisagov/kev-data)) | CC0 1.0 |
 | `cvelistV5_all.zip` | [CVE Program cvelistV5](https://github.com/CVEProject/cvelistV5) | bulk release of 6 Sep 2026 | [CVE Terms of Use](https://www.cve.org/Legal/TermsOfUse) |
 
 ## Pinning the exact versions
