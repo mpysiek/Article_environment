@@ -37,7 +37,7 @@ python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\
 pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 # exact versions of the reference run: requirements-lock.txt
 
-pytest tests -q -p no:cacheprovider                     # 429 tests; test_data_integrity.py needs data/
+pytest tests -q -p no:cacheprovider                     # 433 tests; test_data_integrity.py needs data/
 ```
 
 ### Check the published numbers without re-running anything
@@ -65,6 +65,15 @@ The full pipeline runs on CPU and takes several hours. The first run downloads t
 (~650 MB) and the two Hugging Face models. To get the same corpus as in the article, pin the
 data versions as described in [`data/README.md`](data/README.md).
 
+### Check that you have the article's corpus
+
+The corpus text is not redistributed, but [`data/corpus_manifest_v2_24000.csv.xz`](data/README.md#which-corpus-the-article-used)
+lists every document (ID, type, source, content hashes) in corpus order:
+
+```bash
+python scripts/corpus_manifest.py verify --corpus data/processed/real_cti_corpus_v2_24000.json
+```
+
 ## Repository layout
 
 ```
@@ -76,10 +85,10 @@ src/
   visualization/  report generation and aggregation rules
   defense/        sanitisers (not enabled in the reported runs)
   llm/            optional OpenRouter clients (not used by the cost-free benchmark)
-scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline
-tests/            429 tests
+scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
+tests/            433 tests
 outputs/          results of the runs reported in the article (see above) and their logs
-data/             data provenance and checksums (the data itself is downloaded)
+data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
 archive/          superseded code and the agent workflow history, kept for traceability
 ```
 
