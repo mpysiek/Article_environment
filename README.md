@@ -32,6 +32,8 @@ disagree, the article is right and the repository is to be corrected.
 
 Each folder holds the human-readable report (`rag_poisoning_comparison_report.md`), the run
 manifest, and the full per-query results and traces (`*.json.xz`, compressed from ~130 MB).
+The logs of the reference pipeline are in `outputs/logs/`. Its test step reports `429 passed`
+because it ran before the LLM stage and the defence filters were removed (see `CHANGELOG.md`, 1.3.2).
 
 ## Quick start
 
@@ -61,7 +63,7 @@ report in `--in-dir`. Scripts that write results refuse `outputs/reports/v2/`, t
 ### Re-run the benchmark
 
 ```bash
-python scripts/run_v3_pipeline.py          # tests -> v2_rerun -> v3 -> sweep -> ties -> report -> McNemar
+python scripts/run_v3_pipeline.py          # tests -> v2_rerun -> v2_compare -> v3 -> sweep -> ties -> report -> audit -> McNemar
 python scripts/run_v3_pipeline.py --from v3
 ```
 
