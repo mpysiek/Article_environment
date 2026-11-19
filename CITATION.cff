@@ -5,6 +5,7 @@ type: software
 version: "1.3.3"
 date-released: "2026-11-11"
 license: MIT
+doi: "10.5281/zenodo.24143623"
 repository-code: "https://github.com/mpysiek/Projekt_RAG"
 authors:
   - family-names: "Pyśk"
