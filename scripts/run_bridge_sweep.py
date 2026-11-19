@@ -52,7 +52,7 @@ if sys.platform == "win32":
 
 from tabulate import tabulate
 
-from src.config import config
+from src.config import config, refuse_archive_dir
 from src.corpus.real_cti_loader import RealCTILoader
 from src.corpus.real_query_loader import build_real_gold_queries, QUERY_SETS
 from src.engines.retrievers import GraphRAGRetriever
@@ -104,7 +104,7 @@ def main():
                         help="Question templates (see src/corpus/real_query_loader.py).")
     args = parser.parse_args()
 
-    out_dir = Path(args.out_dir) if args.out_dir else config.REPORTS_DIR
+    out_dir = refuse_archive_dir(Path(args.out_dir) if args.out_dir else config.REPORTS_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 78)

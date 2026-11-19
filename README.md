@@ -32,6 +32,8 @@ disagree, the article is right and the repository is to be corrected.
 
 Each folder holds the human-readable report (`rag_poisoning_comparison_report.md`), the run
 manifest, and the full per-query results and traces (`*.json.xz`, compressed from ~130 MB).
+The logs of the reference pipeline are in `outputs/logs/`. Its test step reports `429 passed`
+because it ran before the LLM stage and the defence filters were removed (see `CHANGELOG.md`, 1.3.2).
 
 ## Quick start
 
@@ -49,6 +51,7 @@ pytest tests -q -p no:cacheprovider                     # 333 tests; test_data_i
 xz -dk outputs/reports/v3/*.json.xz
 python scripts/audit_checks.py --in-dir outputs/reports/v3      # methodological gate K1–K9, TIE
 python scripts/mcnemar_restricted.py --in-dir outputs/reports/v3
+python scripts/rrf_pool_ties.py --in-dir outputs/reports/v3     # ties in the cut of the hybrid candidate pool
 ```
 
 The audit gate on run v3 ends with `PASS: 9  FAIL: 0  INFO: 1`. GitHub Actions runs the tests
@@ -60,7 +63,7 @@ report in `--in-dir`. Scripts that write results refuse `outputs/reports/v2/`, t
 ### Re-run the benchmark
 
 ```bash
-python scripts/run_v3_pipeline.py          # tests -> v2_rerun -> v3 -> sweep -> ties -> report -> McNemar
+python scripts/run_v3_pipeline.py          # tests -> v2_rerun -> v2_compare -> v3 -> sweep -> ties -> report -> audit -> McNemar
 python scripts/run_v3_pipeline.py --from v3
 ```
 
@@ -86,7 +89,7 @@ src/
   attacks/        poisoning vectors and payload construction
   evaluation/     metrics, tie bounds, isolated and shared retrieval protocol
   visualization/  report generation and aggregation rules
-scripts/          entry points: benchmark, bridge sweep, tie audit, audit gate, McNemar, pipeline, corpus manifest
+scripts/          entry points: benchmark, bridge sweep, tie audit, RRF pool ties, audit gate, McNemar, pipeline, corpus manifest
 tests/            333 tests (see tests/README.md)
 outputs/          results of the runs reported in the article (see above) and their logs
 data/             data provenance, checksums and the corpus manifest (the data itself is downloaded)
@@ -118,7 +121,9 @@ reported run used.
 * Hybrid-Reranker reranks a pool of 10 candidates fused by RRF from the top 10 of BM25 and of
   the dense engine. When the two lists share no document, each engine contributes only its
   ranks 1–5, so five payloads can push the answer out of the pool before the cross-encoder
-  sees it.
+  sees it. Equal RRF scores at the cut of that pool are broken by list order (BM25 before
+  dense) and are not covered by the `tie_*` fields. In v3 this order decided the last pool
+  slot in 1,748 of 5,550 lists; `scripts/rrf_pool_ties.py` counts these cases.
 
 ## Names and counts in the article
 
@@ -131,6 +136,7 @@ reported run used.
 ## Citation
 
 See [`CITATION.cff`](CITATION.cff) or use **Cite this repository** on GitHub.
+Archived copy: [doi:10.5281/zenodo.24143623](https://doi.org/10.5281/zenodo.24143623).
 
 ## Licence
 

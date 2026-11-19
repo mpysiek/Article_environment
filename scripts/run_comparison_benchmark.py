@@ -26,7 +26,7 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from src.config import config
+from src.config import config, refuse_archive_dir
 from src.corpus.dataset import build_cti_knowledge_base, build_gold_benchmark_queries, CTIDocument, GoldQuery
 from src.corpus.real_cti_loader import RealCTILoader
 from src.corpus.real_query_loader import build_real_gold_queries, QUERY_SETS
@@ -128,7 +128,7 @@ def run_benchmark_matrix(
 ) -> List[EngineBenchmarkResult]:
     if budgets is None:
         budgets = [1, 2, 3, 5]
-    reports_dir = Path(out_dir) if out_dir else config.REPORTS_DIR
+    reports_dir = refuse_archive_dir(Path(out_dir) if out_dir else config.REPORTS_DIR)
 
     print("=" * 80)
     print("[*] CTI RAG CORPUS POISONING BENCHMARK: 4 ARCHITECTURES COMPARISON")

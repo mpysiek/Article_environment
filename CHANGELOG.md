@@ -5,6 +5,20 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 
 ---
 
+## [Unreleased]
+
+### Skrypty
+- `run_comparison_benchmark.py` i `run_bridge_sweep.py` odmawiają zapisu do archiwum
+  `outputs/reports/v2/`, tak jak pozostałe skrypty zapisujące wyniki. Wcześniej chronił je
+  tylko `run_v3_pipeline.py`. Pomiar bez zmian.
+
+### Dokumentacja
+- `README.md`: pełna lista kroków pipeline'u (`v2_compare`, `audit`); uwaga, skąd `429 passed`
+  w `outputs/logs/tests.log`.
+- `requirements.txt`: usunięty odnośnik do nieistniejącego `AGENTS.md`.
+
+---
+
 ## [1.3.3] - 2026-11-11
 
 ### Summary
@@ -46,8 +60,19 @@ niezgodnych, 2 istotne.
 - Dwa testy sprawdzały obecność słowa „Pareto" w raporcie; teraz sprawdzają jego brak.
   Liczba testów bez zmian: 333.
 
+### Remisy RRF na granicy puli kandydatów
+- Nowy `scripts/rrf_pool_ties.py` (tylko czyta ślady). Hybrid-Reranker obcina listę RRF do 10
+  kandydatów i równe wyniki rozstrzyga kolejnością BM25 przed dense. W v3 o ostatnim miejscu
+  w puli zdecydowała ta kolejność w 1 748 z 5 550 list. Odrzuconego kandydata da się wskazać
+  w 90 listach (89 razy dokument obojętny, raz złoty rekord: SPARSE, B = 5, `ATTR-MAL-Dridex`,
+  stratum relacyjne, nieużyteczne dla tego silnika). Dla 1 658 list nie jest zapisany.
+  Pola `tie_*` tego nie obejmują. Liczby te cytuje poprawiona wersja artykułu (Sekcja 2.9).
+- Bez nowego testu: liczba testów (333) jest podana w artykule.
+
 ### Dokumentacja
+- `CITATION.cff`, `README.md`: DOI archiwum Zenodo (10.5281/zenodo.24143623).
 - `AGENTS.md`: Sekcja 0 „Artykuł jest źródłem prawdy"; pula kandydatów; jedna definicja strat.
+- `README.md` (Scope): remis RRF na granicy puli kandydatów.
 - `README.md`: tabela nazw i liczb artykuł ↔ repozytorium (Graph-Traversal, 429 / 333 testy).
 
 ---
