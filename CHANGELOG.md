@@ -16,6 +16,9 @@ wpis 1.1.0 (optymalizacja protokołu izolowanego) zachowuje oryginalne, angielsk
 - `README.md`: pełna lista kroków pipeline'u (`v2_compare`, `audit`); uwaga, skąd `429 passed`
   w `outputs/logs/tests.log`.
 - `requirements.txt`: usunięty odnośnik do nieistniejącego `AGENTS.md`.
+- `README.md` dopasowany do ostatecznej wersji artykułu (15.11.2026): wersje źródeł i odcisk
+  korpusu, próg użyteczności, zakres odtwarzalności, mapa przebiegów i tabel artykułu
+  na pliki repozytorium. Remis RRF w puli oznaczony jako analiza spoza artykułu.
 
 ---
 
@@ -66,7 +69,8 @@ niezgodnych, 2 istotne.
   w puli zdecydowała ta kolejność w 1 748 z 5 550 list. Odrzuconego kandydata da się wskazać
   w 90 listach (89 razy dokument obojętny, raz złoty rekord: SPARSE, B = 5, `ATTR-MAL-Dridex`,
   stratum relacyjne, nieużyteczne dla tego silnika). Dla 1 658 list nie jest zapisany.
-  Pola `tie_*` tego nie obejmują. Liczby te cytuje poprawiona wersja artykułu (Sekcja 2.9).
+  Pola `tie_*` tego nie obejmują. Ostateczna wersja artykułu (15.11.2026) tych liczb nie podaje,
+  to analiza uzupełniająca.
 - Bez nowego testu: liczba testów (333) jest podana w artykule.
 
 ### Dokumentacja
