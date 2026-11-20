@@ -12,7 +12,7 @@ intentionally not run, so every number is a deterministic, zero-cost measurement
 
 | | |
 | :--- | :--- |
-| Corpus | 24,000 documents from MITRE ATT&CK (STIX 2.1), CTIBench, CISA KEV and CVE Program cvelistV5 |
+| Corpus | 24,000 documents from MITRE ATT&CK (STIX 2.1, v19.2), CTIBench, CISA KEV (2026.09.04) and CVE Program cvelistV5 (release of 6 Sep 2026); fingerprint `26aae4360692cf97` |
 | Queries | 150 in three strata: ATT&CK Relational, CVE Exact-Match, CVE Descriptive |
 | Engines | Sparse-BM25, Dense-FAISS (bge-small-en-v1.5), Hybrid-Reranker (RRF + ms-marco-MiniLM-L-6-v2), GraphRAG (entity graph; called *Graph-Traversal* in the article) |
 | Attacks | 9 vectors (incl. a `query_echo` stress arm and topological bridge injection), budgets 1, 2, 3, 5 |
@@ -116,22 +116,36 @@ reported run used.
 * No defence is enabled; all figures are upper bounds for undefended retrieval.
 * GraphRAG has no point estimate of `poison@1`: rank 1 is often a score tie, so results are
   reported as ranges over every ordering of the tie group.
+* An engine is viable on a stratum if its clean Recall@5 there is at least 50%. Averages use
+  viable strata only. Dense-FAISS is below the floor overall (33.8%) and is reported as a
+  diagnostic engine.
 * The engines are not ranked. Viable strata differ between engines, so per-engine averages
   describe different groups of queries.
+* Reproducibility is claimed locally, for the stored corpus snapshot. `requirements.txt` pins
+  dependencies only from below, and the ATT&CK and CVE sources move; `requirements-lock.txt`
+  and [`data/README.md`](data/README.md) record the versions of the reference run.
 * Hybrid-Reranker reranks a pool of 10 candidates fused by RRF from the top 10 of BM25 and of
   the dense engine. When the two lists share no document, each engine contributes only its
   ranks 1–5, so five payloads can push the answer out of the pool before the cross-encoder
-  sees it. Equal RRF scores at the cut of that pool are broken by list order (BM25 before
-  dense) and are not covered by the `tie_*` fields. In v3 this order decided the last pool
-  slot in 1,748 of 5,550 lists; `scripts/rrf_pool_ties.py` counts these cases.
+  sees it.
+* Not reported in the article: equal RRF scores at the cut of that pool are broken by list
+  order (BM25 before dense) and are not covered by the `tie_*` fields. In v3 this order decided
+  the last pool slot in 1,748 of 5,550 lists. `scripts/rrf_pool_ties.py` counts these cases.
 
 ## Names and counts in the article
 
 | Article | Repository |
 | :--- | :--- |
 | Graph-Traversal | `GraphRAG` (the `engine_name` stored in the result files) |
+| primary run, paraphrased templates (27 Sep 2026) | `outputs/reports/v3/`, `--query-set v3` |
+| original question set, second execution (27 Sep 2026, Section 3.7) | `outputs/reports/v2_rerun/`, `--query-set v2` |
+| original question set, first run (8 Sep 2026) | `outputs/reports/v2/`; `v2_rerun/compare_vs_v2.json` shows the two are identical |
+| corpus composition and fingerprint (Table 1) | `corpus_doc_types` and `corpus_id_fingerprint_sha256_16` in `run_manifest.json` |
+| bridge-count sweep (Table 8) | `bridge_sweep_report.md`, `bridge_sweep_tieaware.json` in `outputs/reports/v3/` |
 | restricted McNemar family, 43 tests (Table 9) | `scripts/mcnemar_restricted.py`, files `mcnemar_restricted.*` |
 | unrestricted family, 74 tests | Section 3.1 of `rag_poisoning_comparison_report.md` |
+| audit gate with ten assertions | `scripts/audit_checks.py`: K1–K9 and TIE (`PASS: 9  FAIL: 0  INFO: 1`) |
+| suite of 333 tests | `tests/` |
 
 ## Citation
 
